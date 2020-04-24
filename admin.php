@@ -19,7 +19,7 @@ class admin_plugin_navigation extends DokuWiki_Admin_Plugin
      */
     public function getMenuSort()
     {
-        return FIXME;
+        return 5;
     }
 
     /**

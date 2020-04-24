@@ -1,7 +1,7 @@
 base   navigation
 author Marek Ištvánek
 email  marek.istvanek@gmail.com
-date   2020-04-07
-name   navigation plugin
+date   2020-04-21
+name   Navigation
 desc   Page navigation extensions
 url    https://github.com/Abd-ru-shin-net/navigation
