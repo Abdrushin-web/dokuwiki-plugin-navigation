@@ -5,9 +5,7 @@
  * @author Marek Ištvánek <marek.istvanek@gmail.com>
  */
 
-// menu entry for admin plugins
-// $lang['menu'] = 'Your menu entry';
+@include('../../LangId.php');
 
-// custom language strings for the plugin
-// $lang['fixme'] = 'FIXME';
+$lang[LangId::contentDefinitionPageTitle] = 'Content';
 

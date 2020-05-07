@@ -7,12 +7,14 @@ class ACL
     {
         return auth_quickaclcheck($id) >= AUTH_READ;
     }
+
     public static function canReadPage(string $id) : bool
     {
         return
             !isHiddenPage($id) &&
             ACL::canRead($id);
     }
+    
     public static function canReadNamespace(string $id) : bool
     {
         global $conf;

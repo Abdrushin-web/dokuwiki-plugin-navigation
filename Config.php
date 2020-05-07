@@ -6,8 +6,9 @@ class Config
 
     public const useHeading = 'useHeading';
     public const content = 'content';
+
     public const navigation = 'navigation';
-    public const navigationPageName = 'navigationPageName';
+    public const contentDefinitionPageName = 'contentDefinitionPageName';
 
     public const namespacePageId = 'namespacePageId';
     

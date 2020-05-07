@@ -1,6 +1,7 @@
 <?php
 
 const NamespaceSeparator = ':';
+const CurrentNamespaceName = '.';
 
 class Ids
 {
@@ -11,27 +12,52 @@ class Ids
 
     public static function isNamespace(string $id)
     {
-        return substr($id, -1, 1) === NamespaceSeparator;
+        return strrpos($id, NamespaceSeparator) === strlen($id) - strlen(NamespaceSeparator);
     }
-    public static function getNamespaceName(string $id) : array
+
+    public static function getNamespaceName(string $id) : string
     {
-        if (Ids::isNamespace($id))
-            $id = substr($id, 0, strlen($id) - 1);
+        $name = substr($id, 0, -1);
+        if (strpos($name, NamespaceSeparator) == 0)
+            $name = substr($name, strlen(NamespaceSeparator));
+        return $name;
+    }
+    public static function getNamespaceAndName(string $id) : array
+    {
+        $isNamespace = Ids::isNamespace($id);
+        if ($isNamespace)
+            $id = substr($id, 0, -1);
         $namespace = getNS($id);
         if ($namespace === false)
             $namespace = '';
         $name = noNS($id);
         return [
             Navigation::namespace => $namespace,
-            Navigation::name => $name
+            Navigation::name => $name,
+            Navigation::isNamespace => $isNamespace
         ];
+    }
+
+    public static function getNamespaceId(string $namespace, string $name = '') : string
+    {
+        if ($name === '')
+            $id = $namespace.NamespaceSeparator;
+        else
+        {
+            $id = Ids::join($namespace, $name);
+            if ($id !== NamespaceSeparator)
+                $id .= NamespaceSeparator;
+        }
+        return $id;
     }
 
     public static function namespaceExists(string $namespace, string $name, string &$id) : bool
     {
-        $id = Ids::join($namespace, $name);
-        $folderPath = Paths::join(dirname(wikiFN($id)), $name);
-        $id .= NamespaceSeparator;
+        $id = Ids::getNamespaceId($namespace, $name);
+        $idForFN = $id === NamespaceSeparator ?
+            $id :
+            substr($id, 0, -1);
+        $folderPath = Paths::join(dirname(wikiFN($idForFN)), $name);
         return is_dir($folderPath);
     }
 
@@ -39,7 +65,7 @@ class Ids
      * @param $id Namespace id
      * @return string Id of namespace page if found, otherwise ''
      */
-    public static function namespacePageId(string $id) : string
+    public static function getNamespacePageId(string $id) : string
     {
         $namespace = rtrim(NamespaceSeparator);
         $id = NamespaceSeparator;

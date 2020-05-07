@@ -8,6 +8,7 @@ class Navigation
     public const order = 'order';
     public const isNamespace = 'isNamespace';
     public const namespace = 'namespace';
+    public const namespaceItem = 'namespaceItem';
     public const namespacePageId = 'namespacePageId';
     public const level = 'level';
 }
