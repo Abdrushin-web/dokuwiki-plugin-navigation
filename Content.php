@@ -180,64 +180,71 @@ class Content
     {
         $namespace1 = $item1[Navigation::namespace];
         $namespace2 = $item2[Navigation::namespace];
-        // try to find namespace item with same namespace to sort subitems
-        if ($namespace1 !== $namespace2)
+        // find common namespace
+        while ($namespace1 !== $namespace2)
         {
-            $namespaceItem1 = $item1[Navigation::namespaceItem];
-            if ($namespaceItem1)
+            $level1 = $item1[Navigation::level];
+            $level2 = $item2[Navigation::level];
+            // go to parent
+            if ($level1 === $level2)
             {
-                $namespace1 = $namespaceItem1[Navigation::namespace];
-                if ($namespace1 === $namespace2)
-                {
-                    $item1 = $namespaceItem1;
-                    $namespaceItemUsed = true;
-                }
+                $item1 = $item1[Navigation::namespaceItem];
+                $item2 = $item2[Navigation::namespaceItem];
+                $namespace1 = $item1[Navigation::namespace];
+                $namespace2 = $item2[Navigation::namespace];
             }
-            if (!$namespaceItemUsed)
-            {
-                $namespaceItem2 = $item2[Navigation::namespaceItem];
-                if ($namespaceItem2)
-                {
-                    $namespace2 = $namespaceItem2[Navigation::namespace];
-                    if ($namespace1 === $namespace2)
-                    {
-                        $item2 = $namespaceItem2;
-                        $namespaceItemUsed = true;
-                    }
-                }
-            }
-        }
-        // sort only inside same namespace
-        if ($namespace1 !== $namespace2)
-        {
-            $result = 0;
-        }
-        // same namespace
-        else
-        {
-            $order1 = $item1[Navigation::order];
-            $order2 = $item2[Navigation::order];
-            $set1 = isset($order1);
-            $set2 = isset($order2);
-            // one orderred first
-            if ($set1 && !$set2)
-                $result = -1;
-            else if (!$set1 && $set2)
-                $result = 1;
-            // none orderred, use name
-            else if (!$set1 && !$set2)
-            {
-                $name1 = $item1[Navigation::name];
-                $name2 = $item2[Navigation::name];
-                $result = strcoll($name1, $name2);
-            }
-            // both orderred
+            // go to same level
             else
             {
-                $result = $order1 === $order2 ?
-                    0 :
-                    $order1 > $order2 ? 1 : -1;
+                if ($level1 > $level2)
+                {
+                    while ($level1 > $level2)
+                    {
+                        $item1 = $item1[Navigation::namespaceItem];
+                        $level1--;
+                        $namespace1 = $item1[Navigation::namespace];
+                    }
+                    // item1 inside item2
+                    if ($item1 === $item2)
+                        return 1;
+                }
+                if ($level2 > $level1)
+                {
+                    while ($level2 > $level1)
+                    {
+                        $item2 = $item2[Navigation::namespaceItem];
+                        $level2--;
+                        $namespace2 = $item2[Navigation::namespace];
+                    }
+                    // item2 inside item1
+                    if ($item1 === $item2)
+                        return -1;
+                }
             }
+        }
+        // same namespace
+        $order1 = $item1[Navigation::order];
+        $order2 = $item2[Navigation::order];
+        $set1 = isset($order1);
+        $set2 = isset($order2);
+        // one orderred first
+        if ($set1 && !$set2)
+            $result = -1;
+        else if (!$set1 && $set2)
+            $result = 1;
+        // none orderred, use name
+        else if (!$set1 && !$set2)
+        {
+            $name1 = $item1[Navigation::name];
+            $name2 = $item2[Navigation::name];
+            $result = strcoll($name1, $name2);
+        }
+        // both orderred
+        else
+        {
+            $result = $order1 === $order2 ?
+                0 :
+                $order1 > $order2 ? 1 : -1;
         }
         return $result;
     }
@@ -318,8 +325,13 @@ class Content
         // page
         else
         {
-            if (!ACL::canReadPage($id))
+            if (
+                !ACL::canReadPage($id) ||
+                $id === Ids::getNamespacePageId(Ids::getNamespaceId($namespace))
+                )
+            {
                 return false;
+            }
         }
         // item
         $item = Ids::getNamespaceAndName($id);

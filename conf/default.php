@@ -5,5 +5,4 @@
  * @author Marek Ištvánek <marek.istvanek@gmail.com>
  */
 
-//$conf['fixme']    = 'FIXME';
-
+$conf[Config::contentDefinitionPageName] = Config::content;

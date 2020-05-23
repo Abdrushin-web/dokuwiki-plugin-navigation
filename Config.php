@@ -4,7 +4,7 @@ class Config
 {
     public const sneakyIndex = 'sneaky_index';
 
-    public const useHeading = 'useHeading';
+    public const useHeading = 'useheading';
     public const content = 'content';
 
     public const navigation = 'navigation';

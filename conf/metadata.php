@@ -5,6 +5,4 @@
  * @author Marek Ištvánek <marek.istvanek@gmail.com>
  */
 
-
-//$meta['fixme'] = array('string');
-
+$meta[Config::contentDefinitionPageName] = array('string');

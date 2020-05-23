@@ -62,13 +62,12 @@ class Ids
     }
 
     /**
-     * @param $id Namespace id
+     * @param string  $id Namespace id
      * @return string Id of namespace page if found, otherwise ''
      */
     public static function getNamespacePageId(string $id) : string
     {
-        $namespace = rtrim(NamespaceSeparator);
-        $id = NamespaceSeparator;
+        $namespace = rtrim($id, NamespaceSeparator);
         $exists = null;
         resolve_pageid($namespace, $id, $exists);
         return $exists ?
@@ -89,7 +88,7 @@ class Ids
         return
             $useHeading !== 0 &&
             (
-                $useHeading === 1 ||
+                $useHeading === '1' ||
                 $inPage &&
                 $useHeading === Config::content ||
                 !$inPage &&
