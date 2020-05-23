@@ -71,7 +71,9 @@ class Ids
         $exists = null;
         resolve_pageid($namespace, $id, $exists);
         return $exists ?
-            $id :
+            !$namespace ?
+                NamespaceSeparator.$id :
+                $id :
             '';
     }
 
