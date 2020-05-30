@@ -145,14 +145,21 @@ class Content
     /**
      * Get navigation content tree
      * 
-     * @param PluginInterface $plugin    Plugin requesting the tree
-     * @param bool|null       $inPage    True for in page tree, false for navigation tree, null for content page prefilling
-     * @param string          $namespace Name of namespace to start at. '' means root one.
-     * @param int             $levels    Number of tree child levels to get. 0 means all.
+     * @param PluginInterface $plugin     Plugin requesting the tree
+     * @param bool|null       $inPage     True for in page tree, false for navigation tree, null for content page prefilling
+     * @param string          $namespace  Name of namespace to start at. '' means root one.
+     * @param int             $levels     Number of tree child levels to get. 0 means all.
+     * @param array           $skippedIds Page identifiers to skip
      */
-    public static function getTree(IPlugin $plugin, $inPage, string $namespace, int $levels = 0) : array
+    public static function getTree(
+        IPlugin $plugin,
+        $inPage,
+        string $namespace,
+        int $levels = 0,
+        array $skippedIds = []
+        ) : array
     {
-        $items = Content::searchNamespace($namespace, $levels);
+        $items = Content::searchNamespace($namespace, $levels, $skippedIds);
         $namespaceToDefinitionPageContent = array();
         $namespaceToItem = [];
         for ($i = 0; $i < count($items); $i++)
@@ -285,13 +292,14 @@ class Content
         }
     }
 
-    public static function searchNamespace(string $namespace, int $levels) : array
+    public static function searchNamespace(string $namespace, int $levels, array $skippedIds) : array
     {
         global $conf;
         $items = array();
         $parameters =
         [
-            Parameter::levels => $levels
+            Parameter::levels => $levels,
+            Parameter::skippedIds => $skippedIds
         ];
         $folder = utf8_encodeFN(str_replace(NamespaceSeparator, PathSeparator, $namespace));
         search($items, $conf[Config::datadir], 'Content::searchNamespaceItem', $parameters, $folder);
@@ -301,6 +309,7 @@ class Content
     public static function searchNamespaceItem(array &$items, string $basePath, string $path, string $type, int $level, array $parameters) : bool
     {
         $levels = $parameters[Parameter::levels];
+        $skippedIds = $parameters[Parameter::skippedIds];
         // check level
         if (
             $levels > 0 &&
@@ -318,7 +327,7 @@ class Content
         {
             $id .= NamespaceSeparator;
             if (!ACL::canReadNamespace($id))
-                 return false;
+                return false;
             $isNamespace = true;
             $namespacePageId = Ids::getNamespacePageId($id);
         }
@@ -333,6 +342,8 @@ class Content
                 return false;
             }
         }
+        if (in_array($id, $skippedIds, true))
+            return false;
         // item
         $item = Ids::getNamespaceAndName($id);
         $item[Navigation::id] = $id;

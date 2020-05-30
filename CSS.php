@@ -2,7 +2,7 @@
 
 class CSS
 {
-    public const navigationMenu = 'navigationMenu';
+    public const navigationMenu = 'idx';
     public const navigationList = 'navigationList';
-    public const navigationCurrentItem = 'navigationCurrentItem';
+    //public const navigationCurrentItem = 'navigationCurrentItem';
 }

@@ -85,8 +85,26 @@ class syntax_plugin_navigation
             case Command::list:
                 $inPage = $command === Command::list;
                 $namespace = $parameters[0] ?? '';
+                if ($namespace === '.')
+                {
+                    global $ID;
+                    list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($ID);
+                }
                 $levels = intval($parameters[1]);
-                $data = Content::getTree($this, $inPage, $namespace, $levels);
+                $skippedIds = [];
+                foreach ($parameters as $parameter)
+                {
+                    if ($parameter[0] !== '-')
+                        continue;
+                    $id = substr($parameter, 1);
+                    if ($id === '.')
+                    {
+                        global $ID;
+                        $id = $ID;
+                    }
+                    $skippedIds[] = $id;
+                }
+                $data = Content::getTree($this, $inPage, $namespace, $levels, $skippedIds);
                 break;
         }
         $data[Parameter::command] = $command;
@@ -111,10 +129,19 @@ class syntax_plugin_navigation
             switch ($command)
             {
                 case Command::menu:
-                    $renderer->doc .= html_buildlist($data, CSS::navigationMenu, 'syntax_plugin_navigation::htmlMenuItem');
+                    $renderer->doc .= html_buildlist(
+                        $data,
+                        CSS::navigationMenu,
+                        'syntax_plugin_navigation::htmlMenuItem',
+                        'syntax_plugin_navigation::htmlMenuLi'
+                        );
                     break;
                 case Command::list:
-                    $renderer->doc .= html_buildlist($data, CSS::navigationList, 'syntax_plugin_navigation::htmlListItem');
+                    $renderer->doc .= html_buildlist(
+                        $data,
+                        CSS::navigationList,
+                        'syntax_plugin_navigation::htmlListItem'
+                        );
                     break;
             }
             return true;
@@ -128,6 +155,22 @@ class syntax_plugin_navigation
             return false;
     }
 
+    function htmlMenuLi(array $item) : string
+    {
+        global $INFO;
+        if ($item[Navigation::isNamespace])
+        {
+            $id = $item[Navigation::id];
+            $id = ltrim($id, NamespaceSeparator);
+            $open = strpos($INFO[Navigation::id], $id) === 0;
+            $class = $open ? 'open' : 'closed';
+        }
+        else
+            $class = 'level'.$item[Navigation::level];
+        return '<li class="'.$class.'">';
+    }
+    
+
     public static function htmlMenuItem(array $item) : string
     {
         return syntax_plugin_navigation::htmlMenuListItem($item, true);
@@ -140,17 +183,17 @@ class syntax_plugin_navigation
 
     public static function htmlMenuListItem(array $item, bool $showCurrent) : string
     {
-        global $ID;
+        // global $ID;
         $id = $item[Navigation::id];
         $title = $item[Navigation::title];
         $result = html_wikilink($id, $title);
-        if (
-            $showCurrent &&
-            $ID === $id
-            )
-        {
-            $result = Html::Tag('strong', CSS::navigationCurrentItem, $result);
-        }
+        // if (
+        //     $showCurrent &&
+        //     $ID === $id
+        //     )
+        // {
+        //     $result = Html::Tag('strong', CSS::navigationCurrentItem, $result);
+        // }
         return $result;
     }
 }
