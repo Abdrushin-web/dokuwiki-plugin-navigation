@@ -10,16 +10,22 @@ class Ids
         return join(NamespaceSeparator, $parts);
     }
 
-    public static function isNamespace(string $id)
+    public static function isNamespace(string $id) : bool
     {
         return strrpos($id, NamespaceSeparator) === strlen($id) - strlen(NamespaceSeparator);
+    }
+
+    public static function trimLeadingNamespaceSeparator(string $id) : string
+    {
+        if (strpos($id, NamespaceSeparator) === 0)
+            $id = substr($id, strlen(NamespaceSeparator));
+        return $id;
     }
 
     public static function getNamespaceName(string $id) : string
     {
         $name = substr($id, 0, -1);
-        if (strpos($name, NamespaceSeparator) == 0)
-            $name = substr($name, strlen(NamespaceSeparator));
+        $name = Ids::trimLeadingNamespaceSeparator($name);
         return $name;
     }
     public static function getNamespaceAndName(string $id) : array

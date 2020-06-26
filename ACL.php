@@ -2,6 +2,12 @@
 
 class ACL
 {
+    public static function isHidden(string $id) : bool
+    {
+        $id = Ids::trimLeadingNamespaceSeparator($id);
+        return isHiddenPage($id);
+    }
+
     public static function canRead(string $id) : bool
     {
         return auth_quickaclcheck($id) >= AUTH_READ;
@@ -10,7 +16,7 @@ class ACL
     public static function canReadPage(string $id) : bool
     {
         return
-            !isHiddenPage($id) &&
+            !ACL::isHidden($id) &&
             ACL::canRead($id);
     }
     
@@ -18,7 +24,15 @@ class ACL
     {
         global $conf;
         return
-            !$conf[Config::sneakyIndex] ||
-            ACL::canRead($id);
+            !ACL::isHidden($id) &&
+            (
+                !$conf[Config::sneakyIndex] ||
+                ACL::canRead($id)
+            );
+    }
+
+    public static function canWrite(string $id) : bool
+    {
+        return auth_quickaclcheck($id) >= AUTH_EDIT;
     }
 }

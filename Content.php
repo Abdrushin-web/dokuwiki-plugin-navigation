@@ -406,7 +406,7 @@ class Content
         )
     {
         $pageId = $namespaceId.$pageName;
-        if (!ACL::canRead($pageId))
+        if (!ACL::canWrite($pageId))
             return;
         $item = $namespaceIdToPageItem[$namespaceId];
         if (!isset($item))
