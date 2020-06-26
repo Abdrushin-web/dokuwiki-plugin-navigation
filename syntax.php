@@ -83,15 +83,30 @@ class syntax_plugin_navigation
         {
             case Command::menu:
             case Command::list:
-                $inPage = $command === Command::list;
-                $namespace = $parameters[0] ?? '';
+            case Command::tree:
+            case Command::content:
+                $inPage = $command !== Command::menu;
+                $namespace = $parameters[0] ??
+                    $inPage ?
+                        '.' : // current
+                        '';   // root
                 if ($namespace === '.')
                 {
                     global $ID;
                     list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($ID);
                 }
-                $levels = intval($parameters[1]);
+                $levelsText = $parameters[1];
+                $levels =
+                    !$levelsText &&
+                    $command === Command::list ?
+                        1 :
+                        intval($levelsText);
                 $skippedIds = [];
+                if ($command === Command::content)
+                {
+                    global $ID;
+                    $skippedIds[] = $ID;
+                }
                 foreach ($parameters as $parameter)
                 {
                     if ($parameter[0] !== '-')
@@ -137,6 +152,8 @@ class syntax_plugin_navigation
                         );
                     break;
                 case Command::list:
+                case Command::tree:
+                case Command::content:
                     $renderer->doc .= html_buildlist(
                         $data,
                         CSS::navigationList,
