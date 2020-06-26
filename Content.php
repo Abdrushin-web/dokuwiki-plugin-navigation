@@ -467,10 +467,10 @@ class Content
         if (!$time)
             return false;
         $lastChange = &$items[0];
-        if ($lastChange &&
-            $lastChange[Metadata::date] < $time)
+        if ($lastChange)
         {
-            $lastChange = $item;
+            if ($lastChange[Metadata::date] < $time)
+                $lastChange = $item;
         }
         else
             $lastChange = $item;
