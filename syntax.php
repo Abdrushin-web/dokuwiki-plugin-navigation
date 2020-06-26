@@ -85,45 +85,50 @@ class syntax_plugin_navigation
             case Command::list:
             case Command::tree:
             case Command::content:
-                $inPage = $command !== Command::menu;
-                $namespace = $parameters[0] ??
-                    $inPage ?
-                        '.' : // current
-                        '';   // root
-                if ($namespace === '.')
-                {
-                    global $ID;
-                    list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($ID);
-                }
-                $levelsText = $parameters[1];
-                $levels =
-                    !$levelsText &&
-                    $command === Command::list ?
-                        1 :
-                        intval($levelsText);
-                $skippedIds = [];
-                if ($command === Command::content)
-                {
-                    global $ID;
-                    $skippedIds[] = $ID;
-                }
-                foreach ($parameters as $parameter)
-                {
-                    if ($parameter[0] !== '-')
-                        continue;
-                    $id = substr($parameter, 1);
-                    if ($id === '.')
-                    {
-                        global $ID;
-                        $id = $ID;
-                    }
-                    $skippedIds[] = $id;
-                }
-                $data = Content::getTree($this, $inPage, $namespace, $levels, $skippedIds);
+                $data = $this->prepareTree($command, $parameters);
                 break;
         }
         $data[Parameter::command] = $command;
         return $data;
+    }
+
+    function prepareTree(string $command, array $parameters) : array
+    {
+        $inPage = $command !== Command::menu;
+        $namespace = $parameters[0] ??
+            $inPage ?
+                '.' : // current
+                '';   // root
+        if ($namespace === '.')
+        {
+            global $ID;
+            list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($ID);
+        }
+        $levelsText = $parameters[1];
+        $levels =
+            !$levelsText &&
+            $command === Command::list ?
+                1 :
+                intval($levelsText);
+        $skippedIds = [];
+        if ($command === Command::content)
+        {
+            global $ID;
+            $skippedIds[] = $ID;
+        }
+        foreach ($parameters as $parameter)
+        {
+            if ($parameter[0] !== '-')
+                continue;
+            $id = substr($parameter, 1);
+            if ($id === '.')
+            {
+                global $ID;
+                $id = $ID;
+            }
+            $skippedIds[] = $id;
+        }
+        return Content::getTree($this, $inPage, $namespace, $levels, $skippedIds);
     }
 
     /**
@@ -144,21 +149,13 @@ class syntax_plugin_navigation
             switch ($command)
             {
                 case Command::menu:
-                    $renderer->doc .= html_buildlist(
-                        $data,
-                        CSS::navigationMenu,
-                        'syntax_plugin_navigation::htmlMenuItem',
-                        'syntax_plugin_navigation::htmlMenuLi'
-                        );
-                    break;
                 case Command::list:
                 case Command::tree:
                 case Command::content:
-                    $renderer->doc .= html_buildlist(
-                        $data,
-                        CSS::navigationList,
-                        'syntax_plugin_navigation::htmlListItem'
-                        );
+                    $this->renderTree($renderer, $data, $command !== Command::menu);
+                    break;
+                case Command::link:
+                    $this->renderLink($renderer);
                     break;
             }
             return true;
@@ -170,6 +167,45 @@ class syntax_plugin_navigation
         }
         else
             return false;
+    }
+
+    function renderTree(Doku_Renderer $renderer, array $data, bool $inPage)
+    {
+        if ($inPage)
+        {
+            $renderer->doc .= html_buildlist(
+            $data,
+            CSS::navigationList,
+            'syntax_plugin_navigation::htmlListItem'
+            );
+        }
+        else
+        {
+            $renderer->doc .= html_buildlist(
+                $data,
+                CSS::navigationMenu,
+                'syntax_plugin_navigation::htmlMenuItem',
+                'syntax_plugin_navigation::htmlMenuLi'
+                );
+        }
+    }
+
+    function renderLink(Doku_Renderer $renderer)
+    {
+        global $ID;
+        $id = $ID;
+        $data = Ids::getNamespaceAndName($id);
+        $isNamespace = $data[Navigation::isNamespace];
+        if (!$isNamespace)
+        {
+            $namespaceId = Ids::getNamespaceId(($data[Navigation::namespace]));
+            $namespacePageId = Ids::getNamespacePageId($namespaceId);
+            $isNamespace = $id === $namespacePageId;
+            if ($isNamespace)
+                $id = $namespaceId;
+        }
+        $link  = $this->wikiLink($id, $isNamespace);
+        $renderer->externallink($link);
     }
 
     function htmlMenuLi(array $item) : string
@@ -212,5 +248,15 @@ class syntax_plugin_navigation
         //     $result = Html::Tag('strong', CSS::navigationCurrentItem, $result);
         // }
         return $result;
+    }
+
+    public function wikiLink($id, $namespace = false)
+    {
+        if ($namespace)
+            $id = getNS($id);
+        $link = wl($id, '', true);
+        if ($namespace)
+            $link .= '/';
+        return $link;
     }
 }

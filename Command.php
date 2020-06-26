@@ -10,4 +10,7 @@ class Command
     public const tree = 'Tree';
     // navigation in page tree with current namespace as default and without current page
     public const content = 'Content';
+    
+    // current namespace/page URI
+    public const link = 'Link';
 }
