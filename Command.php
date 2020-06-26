@@ -13,4 +13,7 @@ class Command
     
     // current namespace/page URI
     public const link = 'Link';
+    
+    // last namespace tree change
+    public const lastTreeChange = 'LastTreeChange';
 }

@@ -5,6 +5,7 @@ use dokuwiki\Parsing\ParserMode\Eol;
 require_once 'ACL.php';
 require_once 'array.php';
 require_once 'Config.php';
+require_once 'DateTimeMode.php';
 require_once 'IPlugin.php';
 require_once 'LangId.php';
 require_once 'Paths.php';
@@ -108,7 +109,7 @@ class Content
             $id,
             $noTitle ?
                 [] :
-                [ Navigation::title => $title ],
+                [ Metadata::title => $title ],
             $noTitle, // render
             !$noTitle // persist
             );
@@ -180,7 +181,7 @@ class Content
         array $skippedIds = []
         ) : array
     {
-        $items = Content::searchNamespace($namespace, $levels, $skippedIds);
+        $items = Content::searchNamespace($namespace, 'Content::searchNamespaceItem', $levels, $skippedIds);
         $namespaceToDefinitionPageContent = array();
         $namespaceToItem = [];
         for ($i = 0; $i < count($items); $i++)
@@ -313,7 +314,12 @@ class Content
         }
     }
 
-    public static function searchNamespace(string $namespace, int $levels, array $skippedIds) : array
+    public static function searchNamespace(
+        string $namespace,
+        string $searchItemMethodName,
+        int $levels = 0,
+        array $skippedIds = []
+        ) : array
     {
         global $conf;
         $items = array();
@@ -323,7 +329,7 @@ class Content
             Parameter::skippedIds => $skippedIds
         ];
         $folder = utf8_encodeFN(str_replace(NamespaceSeparator, PathSeparator, $namespace));
-        search($items, $conf[Config::datadir], 'Content::searchNamespaceItem', $parameters, $folder);
+        search($items, $conf[Config::datadir], $searchItemMethodName, $parameters, $folder);
         return $items;
     }
 
@@ -442,5 +448,42 @@ class Content
         }
         $item[Navigation::title] = $plugin->getLang(LangId::contentDefinitionPageTitle);
         array_insert($items, $index, [ $item ]);
+    }
+
+    public static function getLastTreeChange(string $id) : array
+    {
+        list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($id);
+        $items = Content::searchNamespace($namespace, 'Content::searchLastChange');
+        return $items[0] ?? [];
+    }
+
+    public static function searchLastChange(array &$items, string $basePath, string $path, string $type, int $level, array $parameters) : bool
+    {
+        if ($type == 'd')
+            return true;
+        $id = pathID($path);
+        // page
+        $item[Metadata::date] = $time = p_get_metadata($id, Metadata::date.' '.Metadata::modified);
+        if (!$time)
+            return false;
+        $lastChange = &$items[0];
+        if ($lastChange &&
+            $lastChange[Metadata::date] < $time)
+        {
+            $lastChange = $item;
+        }
+        else
+            $lastChange = $item;
+        return true;
+    }
+
+    public static function FormatTime(IPlugin $plugin, int $time, string $mode = DateTimeMode::DateTime) : string
+    {
+        $format = $mode === DateTimeMode::Date ?
+            $plugin->getLang(LangId::dateFormat) :
+            ($mode === DateTimeMode::Time ?
+                $plugin->getLang(LangId::timeFormat) :
+                $plugin->getLang(LangId::dateTimeFormat));
+        return date($format, $time);
     }
 }

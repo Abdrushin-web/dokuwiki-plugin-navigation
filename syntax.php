@@ -17,6 +17,7 @@ require_once DOKU_INC.'inc/search.php';
 require_once 'Command.php';
 require_once 'Content.php';
 require_once 'CSS.php';
+require_once 'DateTimeMode.php';
 require_once 'Html.php';
 require_once 'IPlugin.php';
 require_once 'Metadata.php';
@@ -87,6 +88,9 @@ class syntax_plugin_navigation
             case Command::content:
                 $data = $this->prepareTree($command, $parameters);
                 break;
+            case Command::lastTreeChange:
+                $data = $this->getLastTreeChange($parameters);
+                break;
         }
         $data[Parameter::command] = $command;
         return $data;
@@ -131,6 +135,15 @@ class syntax_plugin_navigation
         return Content::getTree($this, $inPage, $namespace, $levels, $skippedIds);
     }
 
+    function getLastTreeChange(array $parameters) : array
+    {
+        global $ID;
+        $mode = $parameters[0] ?? DateTimeMode::DateTime;
+        $data = Content::getLastTreeChange($ID);
+        $data[Parameter::mode] = $mode;
+        return $data;
+    }
+
     /**
      * Render xhtml output or metadata
      *
@@ -156,6 +169,9 @@ class syntax_plugin_navigation
                     break;
                 case Command::link:
                     $this->renderLink($renderer);
+                    break;
+                case Command::lastTreeChange:
+                    $this->renderLastTreeChange($renderer, $data);
                     break;
             }
             return true;
@@ -258,5 +274,12 @@ class syntax_plugin_navigation
         if ($namespace)
             $link .= '/';
         return $link;
+    }
+
+    public function renderLastTreeChange(Doku_Renderer $renderer, array $data)
+    {
+        $time = $data[Metadata::date];
+        $mode = $data[Parameter::mode];
+        $renderer->doc .= Content::FormatTime($this, $time, $mode);
     }
 }
