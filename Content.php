@@ -83,6 +83,7 @@ class Content
             {
                 continue;
             }
+            Content::setTitle($id, $title, $isNamespace);
             $result[$id] =
             [
                 Navigation::title => $title,
@@ -91,6 +92,26 @@ class Content
             ];
         }
         return $result ?? [];
+    }
+
+    public static function setTitle(string $id, string $title, bool $isNamespace)
+    {
+        if ($isNamespace)
+        {
+            $namespacePageId = Ids::getNamespacePageId($id);
+            if (!$namespacePageId)
+                return;
+            $id = $namespacePageId;
+        }
+        $noTitle = !$title;
+        p_set_metadata(
+            $id,
+            $noTitle ?
+                [] :
+                [ Navigation::title => $title ],
+            $noTitle, // render
+            !$noTitle // persist
+            );
     }
 
     public static function parseDefinitionPageContent(IPlugin $plugin, string $namespace) : array

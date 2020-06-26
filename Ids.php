@@ -17,16 +17,20 @@ class Ids
 
     public static function trimLeadingNamespaceSeparator(string $id) : string
     {
-        if (strpos($id, NamespaceSeparator) === 0)
-            $id = substr($id, strlen(NamespaceSeparator));
-        return $id;
+        return ltrim($id, NamespaceSeparator);
+    }
+    public static function trimTrailingNamespaceSeparator(string $id) : string
+    {
+        return rtrim($id, NamespaceSeparator);
+    }
+    public static function trimNamespaceSeparator(string $id) : string
+    {
+        return trim($id, NamespaceSeparator);
     }
 
     public static function getNamespaceName(string $id) : string
     {
-        $name = substr($id, 0, -1);
-        $name = Ids::trimLeadingNamespaceSeparator($name);
-        return $name;
+        return Ids::trimNamespaceSeparator($id);
     }
     public static function getNamespaceAndName(string $id) : array
     {
@@ -73,7 +77,7 @@ class Ids
      */
     public static function getNamespacePageId(string $id) : string
     {
-        $namespace = rtrim($id, NamespaceSeparator);
+        $namespace = Ids::trimTrailingNamespaceSeparator($id);
         $exists = null;
         resolve_pageid($namespace, $id, $exists);
         return $exists ?
