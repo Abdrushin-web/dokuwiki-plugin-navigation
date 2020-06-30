@@ -3,7 +3,10 @@
 class Command
 {
     // navigation menu tree with root namespace as default
-    public const menu = 'Menu';
+    public const treeMenu = 'TreeMenu';
+    // navigation level menu for current namespace
+    public const levelMenu = 'LevelMenu';
+
     // navigation in page list with current namespace as default
     public const list = 'List';
     // navigation in page tree with current namespace as default

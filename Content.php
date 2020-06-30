@@ -167,21 +167,23 @@ class Content
     /**
      * Get navigation content tree
      * 
-     * @param PluginInterface $plugin     Plugin requesting the tree
-     * @param bool|null       $inPage     True for in page tree, false for navigation tree, null for content page prefilling
-     * @param string          $namespace  Name of namespace to start at. '' means root one.
-     * @param int             $levels     Number of tree child levels to get. 0 means all.
-     * @param array           $skippedIds Page identifiers to skip
+     * @param PluginInterface $plugin                     Plugin requesting the tree
+     * @param bool|null       $inPage                     True for in page tree, false for navigation tree, null for content page prefilling
+     * @param string          $namespace                  Name of namespace to start at. '' means root one.
+     * @param int             $levels                     Number of tree child levels to get. 0 means all.
+     * @param array           $skippedIds                 Page identifiers to skip
+     * @param bool            $skipContentDefinitionPage  Whether to skip Content definition pages
      */
     public static function getTree(
         IPlugin $plugin,
         $inPage,
         string $namespace,
         int $levels = 0,
-        array $skippedIds = []
+        array $skippedIds = [],
+        bool $addContentDefinitionPage = true
         ) : array
     {
-        $items = Content::searchNamespace($namespace, 'Content::searchNamespaceItem', $levels, $skippedIds);
+        $items = Content::searchNamespace($plugin, $namespace, 'Content::searchNamespaceItem', $levels, $skippedIds);
         $namespaceToDefinitionPageContent = array();
         $namespaceToItem = [];
         for ($i = 0; $i < count($items); $i++)
@@ -198,10 +200,11 @@ class Content
                 Content::ensureTitle($item, $id, $inPage);
         }
         usort($items, 'Content::sortTree');
-        if ($inPage === false)
+        if ($inPage === false &&
+            $addContentDefinitionPage)
+        {
             Content::addDefinitionPageItems($plugin, $namespace, $items);
-        else
-            Content::getAndRemoveDefinitionPageItems($plugin, $items);
+        }
         return $items;
     }
 
@@ -273,7 +276,7 @@ class Content
         {
             $result = $order1 === $order2 ?
                 0 :
-                $order1 > $order2 ? 1 : -1;
+                ($order1 > $order2 ? 1 : -1);
         }
         return $result;
     }
@@ -299,7 +302,7 @@ class Content
     private static function ensureTitle(array &$item, string $id, bool $inPage)
     {
         $title = $item[Navigation::title];
-        if (!isset($title))
+        if (!$title)
         {
             $name = $item[Navigation::name];
             $isNamespace = $item[Navigation::isNamespace];
@@ -315,10 +318,12 @@ class Content
     }
 
     public static function searchNamespace(
+        IPlugin $plugin,
         string $namespace,
         string $searchItemMethodName,
         int $levels = 0,
-        array $skippedIds = []
+        array $skippedIds = [],
+        bool $skipContentDefinitionPage = true
         ) : array
     {
         global $conf;
@@ -326,7 +331,10 @@ class Content
         $parameters =
         [
             Parameter::levels => $levels,
-            Parameter::skippedIds => $skippedIds
+            Parameter::skippedIds => $skippedIds,
+            Parameter::contentDefinitionPageName => $skipContentDefinitionPage ?
+                Content::getDefinitionPageName($plugin) :
+                null
         ];
         $folder = utf8_encodeFN(str_replace(NamespaceSeparator, PathSeparator, $namespace));
         search($items, $conf[Config::datadir], $searchItemMethodName, $parameters, $folder);
@@ -337,18 +345,15 @@ class Content
     {
         $levels = $parameters[Parameter::levels];
         $skippedIds = $parameters[Parameter::skippedIds];
+        $definitionPageName = $parameters[Parameter::contentDefinitionPageName];
         // check level
-        if (
-            $levels > 0 &&
-            $level > $levels
-            )
+        if ($levels > 0 &&
+            $level > $levels)
         {
             return false;
         }
         $id = pathID($path);
         list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($id);
-        if (!$namespace)
-            $id = NamespaceSeparator.$id;
         // namespace
         if ($type == 'd')
         {
@@ -361,10 +366,10 @@ class Content
         // page
         else
         {
-            if (
-                !ACL::canReadPage($id) ||
-                $id === Ids::getNamespacePageId(Ids::getNamespaceId($namespace))
-                )
+            if (!$namespace)
+                $id = NamespaceSeparator.$id;
+            if (!ACL::canReadPage($id) ||
+                $id === Ids::getNamespacePageId(Ids::getNamespaceId($namespace)))
             {
                 return false;
             }
@@ -373,6 +378,8 @@ class Content
             return false;
         // item
         $item = Ids::getNamespaceAndName($id);
+        if ($item[Navigation::name] === $definitionPageName)
+            return false;
         $item[Navigation::id] = $id;
         $item[Navigation::isNamespace] = $isNamespace;
         $item[Navigation::level] = $level;
@@ -381,32 +388,8 @@ class Content
         return true;
     }
 
-    private static function getAndRemoveDefinitionPageItems(IPlugin $plugin, array &$items) : array
-    {
-        $pageName = Content::getDefinitionPageName($plugin);
-        for ($i = count($items) - 1; $i >= 0; $i--)
-        {
-            $item = $items[$i];
-            $isNamespace = $item[Navigation::isNamespace];
-            if ($isNamespace)
-                continue;
-            $name = $item[Navigation::name];
-            if ($name === $pageName)
-            {
-                $namespace = $item[Navigation::namespace];
-                $namespaceIdToPageItem[Ids::getNamespaceId($namespace)] = $item;
-                unset($items[$i]);
-                $removed = true;
-            }
-        }
-        if ($removed)
-            $items = array_values($items); // reindex
-        return $namespaceIdToPageItem ?? [];
-    }
-
     private static function addDefinitionPageItems(IPlugin $plugin, string $namespace, array &$items)
     {
-        $namespaceIdToPageItem = Content::getAndRemoveDefinitionPageItems($plugin, $items);
         $pageName = Content::getDefinitionPageName($plugin);
         for ($i = count($items) - 1; $i >= 0; $i--)
         {
@@ -416,10 +399,10 @@ class Content
                 continue;
             $namespaceId = $item[Navigation::id];
             $level = $item[Navigation::level] + 1;
-            Content::insertDefinitionPageItem($plugin, $items, $namespaceId, $pageName, $level, $namespaceIdToPageItem, $i + 1);
+            Content::insertDefinitionPageItem($plugin, $items, $namespaceId, $pageName, $level, $i + 1);
         }
         $namespaceId = Ids::getNamespaceId($namespace);
-        Content::insertDefinitionPageItem($plugin, $items, $namespaceId, $pageName, 1, $namespaceIdToPageItem, 0);
+        Content::insertDefinitionPageItem($plugin, $items, $namespaceId, $pageName, 1, 0);
     }
 
     private static function insertDefinitionPageItem(
@@ -428,32 +411,27 @@ class Content
         string $namespaceId,
         string $pageName,
         int $level,
-        array &$namespaceIdToPageItem,
         int $index
         )
     {
         $pageId = $namespaceId.$pageName;
         if (!ACL::canWrite($pageId))
             return;
-        $item = $namespaceIdToPageItem[$namespaceId];
-        if (!isset($item))
-        {
-            $namespace = Ids::getNamespaceName($namespaceId);
-            $item = [
-                Navigation::id => $pageId,
-                Navigation::namespace => $namespace,
-                Navigation::name => $pageName,
-                Navigation::level => $level
-            ];
-        }
+        $namespace = Ids::getNamespaceName($namespaceId);
+        $item = [
+            Navigation::id => $pageId,
+            Navigation::namespace => $namespace,
+            Navigation::name => $pageName,
+            Navigation::level => $level
+        ];
         $item[Navigation::title] = $plugin->getLang(LangId::contentDefinitionPageTitle);
         array_insert($items, $index, [ $item ]);
     }
 
-    public static function getLastTreeChange(string $id) : array
+    public static function getLastTreeChange(IPlugin $plugin, string $id) : array
     {
         list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($id);
-        $items = Content::searchNamespace($namespace, 'Content::searchLastChange');
+        $items = Content::searchNamespace($plugin, $namespace, 'Content::searchLastChange', 0, [], false);
         return $items[0] ?? [];
     }
 
@@ -485,5 +463,110 @@ class Content
                 $plugin->getLang(LangId::timeFormat) :
                 $plugin->getLang(LangId::dateTimeFormat));
         return date($format, $time);
+    }
+
+    public static function getLevelItems(IPlugin $plugin, array &$levelItems, string $id = '') : array
+    {
+        if (!$id)
+            $id = Ids::currentPageId();
+        $idInfo = Ids::getNamespaceAndName($id);
+        $namespace = $idInfo[Navigation::namespace];
+        $namespaceId = Ids::getNamespaceId($namespace);
+        $namespacePageId = Ids::getNamespacePageId($namespaceId, false);
+        if ($id === $namespacePageId)
+            return Content::getLevelItems($plugin, $levelItems, $namespaceId);
+        if (!$levelItems)
+        {
+            $levelItems[] = Parameter::outside;
+            $levelItems[] = Parameter::first;
+            $levelItems[] = Parameter::previous;
+            $levelItems[] = Parameter::inside;
+            $levelItems[] = Parameter::next;
+            $levelItems[] = Parameter::last;
+        }
+        $items = [];
+        foreach ($levelItems as $levelItem)
+            $result[] = Content::getLevelItem($plugin, $id, $idInfo, $levelItem, $items);
+        return $result ?? [];
+    }
+
+    public static function getLevelItem(IPlugin $plugin, string $id, array &$idInfo, string $levelItem, array &$items) : array
+    {
+        $namespace = $idInfo[Navigation::namespace];
+        switch ($levelItem)
+        {
+            case Parameter::next:
+                $index = Content::indexOfNamespaceItem($plugin, $namespace, $items, $id);
+                $item = $index >= 0 ?
+                    $items[$index + 1] :
+                    null;
+                break;
+            case Parameter::previous:
+                $index = Content::indexOfNamespaceItem($plugin, $namespace, $items, $id);
+                $item = $index >= 0 ?
+                    $items[$index - 1] :
+                    null;
+                break;
+            case Parameter::first:
+                $index = Content::indexOfNamespaceItem($plugin, $namespace, $items, $id);
+                $item = $index <= 0 ?
+                    null :
+                    $items[0];
+                break;
+            case Parameter::last:
+                $index = Content::indexOfNamespaceItem($plugin, $namespace, $items, $id);
+                $lastIndex = count($items) - 1;
+                $item =
+                    $index < 0 ||
+                    $index === $lastIndex ?
+                        null :
+                        $items[$lastIndex];
+                break;
+            case Parameter::inside:
+                if ($idInfo[Navigation::isNamespace])
+                {
+                    $subItems = [];
+                    Content::ensureNamespaceItems($plugin, Ids::getNamespaceName($id), $subItems);
+                    $item = $subItems[0];
+                }
+                else
+                    $item = null;
+                break;
+            case Parameter::outside:
+                $namespaceId = Ids::getNamespaceId($namespace);
+                if ($id === $namespaceId)
+                    $item = null;
+                else
+                {
+                    $item = Ids::getNamespaceAndName($namespaceId);
+                    $item[Navigation::id] = $namespaceId;
+                    $item[Navigation::title] = p_get_metadata(Ids::getNamespacePageId($namespaceId), Metadata::title) ??
+                        $item[Navigation::name];
+                }
+                break;
+            default:
+                $unknown = true;
+        }
+        $item[Navigation::levelItem] = $levelItem;
+        $item[Navigation::levelItemName] = $unknown ?
+            null :
+            $plugin->getLang($levelItem);
+        $item[Navigation::level] = 1;
+        return $item;
+    }
+
+    public static function indexOfNamespaceItem(IPlugin $plugin, string $namespace, array &$items, $id) : int
+    {
+        Content::ensureNamespaceItems($plugin, $namespace, $items);
+        $index = array_search($id, array_column($items, Navigation::id));
+        return $index === false ?
+            -1 :
+            $index;
+    }
+
+    public static function ensureNamespaceItems(IPlugin $plugin, string $namespace, array &$items)
+    {
+        if (!$items)
+            $items = Content::getTree($plugin, false, $namespace, 1, [], false);
     }
 }

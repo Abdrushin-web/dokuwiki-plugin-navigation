@@ -11,4 +11,6 @@ class Navigation
     public const namespaceItem = 'namespaceItem';
     public const namespacePageId = 'namespacePageId';
     public const level = 'level';
+    public const levelItem = 'levelItem';
+    public const levelItemName = 'levelItemName';
 }

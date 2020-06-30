@@ -82,7 +82,7 @@ class syntax_plugin_navigation
         $parameters = array_slice($items, 2);
         switch ($command)
         {
-            case Command::menu:
+            case Command::treeMenu:
             case Command::list:
             case Command::tree:
             case Command::content:
@@ -91,6 +91,9 @@ class syntax_plugin_navigation
             case Command::lastTreeChange:
                 $data = $this->getLastTreeChange($parameters);
                 break;
+            case Command::levelMenu:
+                $data = Content::getLevelItems($this, $parameters);
+                break;
         }
         $data[Parameter::command] = $command;
         return $data;
@@ -98,7 +101,7 @@ class syntax_plugin_navigation
 
     function prepareTree(string $command, array $parameters) : array
     {
-        $inPage = $command !== Command::menu;
+        $inPage = $command !== Command::treeMenu;
         $namespace = $parameters[0] ??
             $inPage ?
                 '.' : // current
@@ -139,7 +142,7 @@ class syntax_plugin_navigation
     {
         global $ID;
         $mode = $parameters[0] ?? DateTimeMode::DateTime;
-        $data = Content::getLastTreeChange($ID);
+        $data = Content::getLastTreeChange($this, $ID);
         $data[Parameter::mode] = $mode;
         return $data;
     }
@@ -161,11 +164,11 @@ class syntax_plugin_navigation
             unset($data[Parameter::command]);
             switch ($command)
             {
-                case Command::menu:
+                case Command::treeMenu:
                 case Command::list:
                 case Command::tree:
                 case Command::content:
-                    $this->renderTree($renderer, $data, $command !== Command::menu);
+                    $this->renderTree($renderer, $data, $command !== Command::treeMenu);
                     break;
                 case Command::link:
                     $this->renderLink($renderer);
@@ -173,6 +176,11 @@ class syntax_plugin_navigation
                 case Command::lastTreeChange:
                     $this->renderLastTreeChange($renderer, $data);
                     break;
+                case Command::levelMenu:
+                    $this->renderLevelItems($renderer, $data);
+                    break;
+                default:
+                    return false;
             }
             return true;
         }
@@ -230,19 +238,28 @@ class syntax_plugin_navigation
         if ($item[Navigation::isNamespace])
         {
             $id = $item[Navigation::id];
-            $id = ltrim($id, NamespaceSeparator);
-            $open = strpos($INFO[Navigation::id], $id) === 0;
+            $id = Ids::trimLeadingNamespaceSeparator($id);
+            $open = $id &&
+                    strpos($INFO[Navigation::id], $id) === 0;
             $class = $open ? 'open' : 'closed';
         }
         else
             $class = 'level'.$item[Navigation::level];
+        $levelItem = $item[Navigation::levelItem];
+        if ($levelItem)
+            $class .= ' '.$levelItem;
         return '<li class="'.$class.'">';
     }
     
-
     public static function htmlMenuItem(array $item) : string
     {
-        return syntax_plugin_navigation::htmlMenuListItem($item, true);
+        $id = $item[Navigation::id];
+        $levelItemName = $item[Navigation::levelItemName];
+        if ($levelItemName)
+            $result = $levelItemName.': ';
+        if ($id)
+            $result .= syntax_plugin_navigation::htmlMenuListItem($item, true);
+        return $result;
     }
 
     public static function htmlListItem(array $item) : string
@@ -281,5 +298,10 @@ class syntax_plugin_navigation
         $time = $data[Metadata::date];
         $mode = $data[Parameter::mode];
         $renderer->doc .= Content::FormatTime($this, $time, $mode);
+    }
+
+    public function renderLevelItems(Doku_Renderer $renderer, array $data)
+    {
+        $this->renderTree($renderer, $data, false);
     }
 }

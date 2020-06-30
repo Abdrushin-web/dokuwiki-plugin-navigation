@@ -5,6 +5,17 @@ const CurrentNamespaceName = '.';
 
 class Ids
 {
+    public static function currentPageId() : string
+    {
+        global $INFO;
+        global $ID;
+        $id = $INFO[Navigation::id] ?? $ID;
+        list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($id);
+        if (!$namespace)
+            $id = NamespaceSeparator.$id;
+        return $id;
+    }
+
     public static function join(string ... $parts) : string
     {
         return join(NamespaceSeparator, $parts);
@@ -36,7 +47,7 @@ class Ids
     {
         $isNamespace = Ids::isNamespace($id);
         if ($isNamespace)
-            $id = substr($id, 0, -1);
+            $id = Ids::trimTrailingNamespaceSeparator($id);
         $namespace = getNS($id);
         if ($namespace === false)
             $namespace = '';
@@ -48,6 +59,11 @@ class Ids
         ];
     }
 
+    public static function isRootNamespace(string $id)
+    {
+        return $id === NamespaceSeparator;
+    }
+
     public static function getNamespaceId(string $namespace, string $name = '') : string
     {
         if ($name === '')
@@ -55,7 +71,7 @@ class Ids
         else
         {
             $id = Ids::join($namespace, $name);
-            if ($id !== NamespaceSeparator)
+            if (!Ids::isRootNamespace($id))
                 $id .= NamespaceSeparator;
         }
         return $id;
@@ -72,19 +88,22 @@ class Ids
     }
 
     /**
-     * @param string  $id Namespace id
-     * @return string Id of namespace page if found, otherwise ''
+     * @param string  $id               Namespace id
+     * @param bool    $emptyIfNotFound  Whether to return '' id if page is not found, otherwise page id
+     * @return string Id of namespace page if found, otherwise '' if $emptyIfNotFound is true, otherwise page id
      */
-    public static function getNamespacePageId(string $id) : string
+    public static function getNamespacePageId(string $id, bool $emptyIfNotFound = true) : string
     {
         $namespace = Ids::trimTrailingNamespaceSeparator($id);
         $exists = null;
         resolve_pageid($namespace, $id, $exists);
-        return $exists ?
-            !$namespace ?
-                NamespaceSeparator.$id :
-                $id :
-            '';
+        return
+            $exists ||
+            !$emptyIfNotFound ?
+                (!$namespace ?
+                    NamespaceSeparator.$id :
+                    $id) :
+                '';
     }
 
     public static function pageExists(string $namespace, string $name, string &$id) : bool
