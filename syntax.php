@@ -193,7 +193,7 @@ class syntax_plugin_navigation
             return false;
     }
 
-    function renderTree(Doku_Renderer $renderer, array $data, bool $inPage)
+    function renderTree(Doku_Renderer $renderer, array &$data, bool $inPage)
     {
         if ($inPage)
         {
@@ -203,6 +203,7 @@ class syntax_plugin_navigation
             'syntax_plugin_navigation::htmlListItem'
             );
         }
+        // menu
         else
         {
             $renderer->doc .= html_buildlist(
@@ -232,13 +233,12 @@ class syntax_plugin_navigation
         $renderer->externallink($link);
     }
 
-    function htmlMenuLi(array $item) : string
+    public static function htmlMenuLi(array $item) : string
     {
         global $INFO;
         if ($item[Navigation::isNamespace])
         {
-            $id = $item[Navigation::id];
-            $id = Ids::trimLeadingNamespaceSeparator($id);
+            $id = Ids::trimLeadingNamespaceSeparator($item[Navigation::id]);
             $open = $id &&
                     strpos($INFO[Navigation::id], $id) === 0;
             $class = $open ? 'open' : 'closed';
@@ -250,15 +250,14 @@ class syntax_plugin_navigation
             $class .= ' '.$levelItem;
         return '<li class="'.$class.'">';
     }
-    
+
     public static function htmlMenuItem(array $item) : string
     {
         $id = $item[Navigation::id];
         $levelItemName = $item[Navigation::levelItemName];
         if ($levelItemName)
             $result = $levelItemName.': ';
-        if ($id)
-            $result .= syntax_plugin_navigation::htmlMenuListItem($item, true);
+        $result .= syntax_plugin_navigation::htmlMenuListItem($item, true);
         return $result;
     }
 
@@ -267,7 +266,7 @@ class syntax_plugin_navigation
         return syntax_plugin_navigation::htmlMenuListItem($item, false);
     }
 
-    public static function htmlMenuListItem(array $item, bool $showCurrent) : string
+    public static function htmlMenuListItem(array &$item, bool $showCurrent) : string
     {
         // global $ID;
         $id = $item[Navigation::id];
@@ -293,15 +292,46 @@ class syntax_plugin_navigation
         return $link;
     }
 
-    public function renderLastTreeChange(Doku_Renderer $renderer, array $data)
+    public function renderLastTreeChange(Doku_Renderer $renderer, array &$data)
     {
         $time = $data[Metadata::date];
         $mode = $data[Parameter::mode];
         $renderer->doc .= Content::FormatTime($this, $time, $mode);
     }
 
-    public function renderLevelItems(Doku_Renderer $renderer, array $data)
+    public function renderLevelItems(Doku_Renderer $renderer, array &$data)
     {
+        foreach ($data as $index => $item)
+        {
+            if (!$item[Navigation::id])
+            {
+                unset($data[$index]);
+                $reindex = true;
+            }
+        }
+        if ($reindex)
+            $data = array_values($data);
+        syntax_plugin_navigation::clearLevelItemDuplicate($data, Parameter::first, Parameter::previous);
+        syntax_plugin_navigation::clearLevelItemDuplicate($data, Parameter::last, Parameter::next);
         $this->renderTree($renderer, $data, false);
+    }
+
+    public static function getLevelItemIndex(array &$data, string $levelItem)
+    {
+        return array_search($levelItem, array_column($data, Navigation::levelItem));
+    }
+
+    public static function clearLevelItemDuplicate(array &$data, string $levelItem, string $levelItemDuplicate)
+    {
+        $index = syntax_plugin_navigation::getLevelItemIndex($data, $levelItem);
+        if ($index === false)
+            return;
+        $duplicateIndex = syntax_plugin_navigation::getLevelItemIndex($data, $levelItemDuplicate);
+        if ($duplicateIndex === false)
+            return;
+        if ($data[$index][Navigation::id] !== $data[$duplicateIndex][Navigation::id])
+            return;
+        unset($data[$duplicateIndex]);
+        $data = array_values($data);
     }
 }
