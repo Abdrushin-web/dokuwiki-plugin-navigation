@@ -8,7 +8,9 @@ require_once 'Config.php';
 require_once 'DateTimeMode.php';
 require_once 'IPlugin.php';
 require_once 'LangId.php';
+require_once 'LevelItem.php';
 require_once 'Paths.php';
+require_once 'Parameter.php';
 require_once 'Text.php';
 
 class Content
@@ -477,12 +479,12 @@ class Content
             return Content::getLevelItems($plugin, $levelItems, $namespaceId);
         if (!$levelItems)
         {
-            $levelItems[] = Parameter::outside;
-            $levelItems[] = Parameter::first;
-            $levelItems[] = Parameter::previous;
-            $levelItems[] = Parameter::inside;
-            $levelItems[] = Parameter::next;
-            $levelItems[] = Parameter::last;
+            $levelItems[] = LevelItem::outside;
+            $levelItems[] = LevelItem::first;
+            $levelItems[] = LevelItem::previous;
+            $levelItems[] = LevelItem::inside;
+            $levelItems[] = LevelItem::next;
+            $levelItems[] = LevelItem::last;
         }
         $items = [];
         foreach ($levelItems as $levelItem)
@@ -495,25 +497,25 @@ class Content
         $namespace = $idInfo[Navigation::namespace];
         switch ($levelItem)
         {
-            case Parameter::next:
+            case LevelItem::next:
                 $index = Content::indexOfNamespaceItem($plugin, $namespace, $items, $id);
                 $item = $index >= 0 ?
                     $items[$index + 1] :
                     null;
                 break;
-            case Parameter::previous:
+            case LevelItem::previous:
                 $index = Content::indexOfNamespaceItem($plugin, $namespace, $items, $id);
                 $item = $index >= 0 ?
                     $items[$index - 1] :
                     null;
                 break;
-            case Parameter::first:
+            case LevelItem::first:
                 $index = Content::indexOfNamespaceItem($plugin, $namespace, $items, $id);
                 $item = $index <= 0 ?
                     null :
                     $items[0];
                 break;
-            case Parameter::last:
+            case LevelItem::last:
                 $index = Content::indexOfNamespaceItem($plugin, $namespace, $items, $id);
                 $lastIndex = count($items) - 1;
                 $item =
@@ -522,7 +524,7 @@ class Content
                         null :
                         $items[$lastIndex];
                 break;
-            case Parameter::inside:
+            case LevelItem::inside:
                 if ($idInfo[Navigation::isNamespace])
                 {
                     $subItems = [];
@@ -532,7 +534,7 @@ class Content
                 else
                     $item = null;
                 break;
-            case Parameter::outside:
+            case LevelItem::outside:
                 $namespaceId = Ids::getNamespaceId($namespace);
                 if ($id === $namespaceId)
                     $item = null;

@@ -20,6 +20,7 @@ require_once 'CSS.php';
 require_once 'DateTimeMode.php';
 require_once 'Html.php';
 require_once 'IPlugin.php';
+require_once 'LevelItem.php';
 require_once 'Metadata.php';
 require_once 'Navigation.php';
 require_once 'Parameter.php';
@@ -253,12 +254,44 @@ class syntax_plugin_navigation
 
     public static function htmlMenuItem(array $item) : string
     {
-        $id = $item[Navigation::id];
-        $levelItemName = $item[Navigation::levelItemName];
-        if ($levelItemName)
-            $result = $levelItemName.': ';
+        $levelItem = $item[Navigation::levelItem];
+        if ($levelItem)
+        {
+            $levelItemName = $item[Navigation::levelItemName];
+            $symbol = syntax_plugin_navigation::getLevelItemSymbol($levelItem);
+            $result = "<span title='$levelItemName' style='display: inline-block; width: 2em; text-align: center;width: 2em'>$symbol</span>";
+        }
         $result .= syntax_plugin_navigation::htmlMenuListItem($item, true);
         return $result;
+    }
+
+    public static function getLevelItemSymbol(string $levelItem)
+    {
+        switch ($levelItem)
+        {
+            case LevelItem::first:
+                $symbol = "|←";
+                break;
+            case LevelItem::previous:
+                $symbol = "←";
+                break;
+            case LevelItem::last:
+                $symbol = "→|";
+                break;
+            case LevelItem::next:
+                $symbol = "→";
+                break;
+            case LevelItem::inside:
+                $symbol = "↓";
+                break;
+            case LevelItem::outside:
+                $symbol = "↑";
+                break;
+            default:
+                $symbol = '';
+                break;
+        }
+        return $symbol;
     }
 
     public static function htmlListItem(array $item) : string
@@ -311,8 +344,8 @@ class syntax_plugin_navigation
         }
         if ($reindex)
             $data = array_values($data);
-        syntax_plugin_navigation::clearLevelItemDuplicate($data, Parameter::first, Parameter::previous);
-        syntax_plugin_navigation::clearLevelItemDuplicate($data, Parameter::last, Parameter::next);
+        syntax_plugin_navigation::clearLevelItemDuplicate($data, LevelItem::first, LevelItem::previous);
+        syntax_plugin_navigation::clearLevelItemDuplicate($data, LevelItem::last, LevelItem::next);
         $this->renderTree($renderer, $data, false);
     }
 

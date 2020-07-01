@@ -14,9 +14,9 @@ $lang[LangId::dateFormat] = 'd/m/Y';
 $lang[LangId::timeFormat] = 'G:i';
 $lang[LangId::dateTimeFormat] = $lang[LangId::dateFormat].' '.$lang[LangId::timeFormat];
 
-$lang[Parameter::next] = Parameter::next;
-$lang[Parameter::previous] = Parameter::previous;
-$lang[Parameter::first] = Parameter::first;
-$lang[Parameter::last] = Parameter::last;
-$lang[Parameter::inside] = Parameter::inside;
-$lang[Parameter::outside] = Parameter::outside;
+$lang[LevelItem::next] = LevelItem::next;
+$lang[LevelItem::previous] = LevelItem::previous;
+$lang[LevelItem::first] = LevelItem::first;
+$lang[LevelItem::last] = LevelItem::last;
+$lang[LevelItem::inside] = LevelItem::inside;
+$lang[LevelItem::outside] = LevelItem::outside;
