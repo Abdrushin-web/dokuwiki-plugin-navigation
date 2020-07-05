@@ -427,7 +427,7 @@ class Content
             Navigation::name => $pageName,
             Navigation::level => $level
         ];
-        $item[Navigation::title] = $plugin->getLang(LangId::contentDefinitionPageTitle);
+        $item[Navigation::isContentDefinitionPage] = true;
         array_insert($items, $index, [ $item ]);
     }
 
@@ -583,9 +583,6 @@ class Content
                 $unknown = true;
         }
         $item[Navigation::levelItem] = $levelItem;
-        $item[Navigation::levelItemName] = $unknown ?
-            null :
-            $plugin->getLang($levelItem);
         $item[Navigation::level] = 1;
         return $item;
     }

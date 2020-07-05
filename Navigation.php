@@ -10,6 +10,7 @@ class Navigation
     public const namespace = 'namespace';
     public const namespaceItem = 'namespaceItem';
     public const namespacePageId = 'namespacePageId';
+    public const isContentDefinitionPage = 'isContentDefinitionPage';
     public const level = 'level';
     public const levelItem = 'levelItem';
     public const levelItemName = 'levelItemName';

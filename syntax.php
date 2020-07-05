@@ -196,6 +196,7 @@ class syntax_plugin_navigation
 
     function renderTree(Doku_Renderer $renderer, array &$data, bool $inPage)
     {
+        // in page
         if ($inPage)
         {
             $renderer->doc .= html_buildlist(
@@ -207,6 +208,11 @@ class syntax_plugin_navigation
         // menu
         else
         {
+            foreach ($data as &$item)
+            {
+                if ($item[Navigation::isContentDefinitionPage])
+                    $item[Navigation::title] = $this->getLang(LangId::contentDefinitionPageTitle);
+            }
             $renderer->doc .= html_buildlist(
                 $data,
                 CSS::navigationMenu,
@@ -308,6 +314,8 @@ class syntax_plugin_navigation
         switch ($mode)
         {
             case LevelItemsMode::list:
+                foreach ($data as &$item)
+                    $item[Navigation::levelItemName] = $this->getLang($item[Navigation::levelItem]);
                 $this->renderTree($renderer, $data, false);
                 break;
             case LevelItemsMode::symbols:
@@ -328,7 +336,7 @@ class syntax_plugin_navigation
     public function getLevelItemSymbol(array &$item) : string
     {
         $levelItem = $item[Navigation::levelItem];
-        $levelItemName = $item[Navigation::levelItemName];
+        $levelItemName = $this->getLang($levelItem);
         $title = $item[Navigation::title];
         $title = $title ?
             $levelItemName.":\n".$title :
