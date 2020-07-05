@@ -9,6 +9,7 @@ require_once 'DateTimeMode.php';
 require_once 'IPlugin.php';
 require_once 'LangId.php';
 require_once 'LevelItem.php';
+require_once 'LevelItemsMode.php';
 require_once 'Paths.php';
 require_once 'Parameter.php';
 require_once 'Text.php';
@@ -477,19 +478,51 @@ class Content
         $namespacePageId = Ids::getNamespacePageId($namespaceId, false);
         if ($id === $namespacePageId)
             return Content::getLevelItems($plugin, $levelItems, $namespaceId);
+        $mode = Content::getLevelItemsMode($levelItems);
         if (!$levelItems)
         {
-            $levelItems[] = LevelItem::outside;
+            if ($mode === LevelItemsMode::list)
+                $levelItems[] = LevelItem::outside;
             $levelItems[] = LevelItem::first;
             $levelItems[] = LevelItem::previous;
+            if ($mode === LevelItemsMode::symbols)
+                $levelItems[] = LevelItem::outside;
             $levelItems[] = LevelItem::inside;
             $levelItems[] = LevelItem::next;
             $levelItems[] = LevelItem::last;
         }
         $items = [];
         foreach ($levelItems as $levelItem)
-            $result[] = Content::getLevelItem($plugin, $id, $idInfo, $levelItem, $items);
+        {
+            $item = Content::getLevelItem($plugin, $id, $idInfo, $levelItem, $items);
+            if ($mode === LevelItemsMode::list &&
+                !$item[Navigation::id])
+            {
+                continue;
+            }
+            $item[Parameter::mode] = $mode;
+            $result[] = $item;
+        }
+        if ($result &&
+            $mode === LevelItemsMode::list)
+        {
+            Content::clearLevelItemDuplicate($result, LevelItem::first, LevelItem::previous);
+            Content::clearLevelItemDuplicate($result, LevelItem::last, LevelItem::next);
+        }
         return $result ?? [];
+    }
+
+    public static function getLevelItemsMode(array &$levelItems)
+    {
+        $mode = $levelItems[0];
+        if ($mode === LevelItemsMode::symbols ||
+            $mode === LevelItemsMode::list)
+        {
+            $levelItems = array_slice($levelItems, 1);
+        }
+        else
+            $mode = LevelItemsMode::list;
+        return $mode;
     }
 
     public static function getLevelItem(IPlugin $plugin, string $id, array &$idInfo, string $levelItem, array &$items) : array
@@ -555,6 +588,25 @@ class Content
             $plugin->getLang($levelItem);
         $item[Navigation::level] = 1;
         return $item;
+    }
+
+    public static function getLevelItemIndex(array &$data, string $levelItem)
+    {
+        return array_search($levelItem, array_column($data, Navigation::levelItem));
+    }
+
+    public static function clearLevelItemDuplicate(array &$data, string $levelItem, string $levelItemDuplicate)
+    {
+        $index = Content::getLevelItemIndex($data, $levelItem);
+        if ($index === false)
+            return;
+        $duplicateIndex = Content::getLevelItemIndex($data, $levelItemDuplicate);
+        if ($duplicateIndex === false)
+            return;
+        if ($data[$index][Navigation::id] !== $data[$duplicateIndex][Navigation::id])
+            return;
+        unset($data[$duplicateIndex]);
+        $data = array_values($data);
     }
 
     public static function indexOfNamespaceItem(IPlugin $plugin, string $namespace, array &$items, $id) : int

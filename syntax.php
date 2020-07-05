@@ -258,40 +258,10 @@ class syntax_plugin_navigation
         if ($levelItem)
         {
             $levelItemName = $item[Navigation::levelItemName];
-            $symbol = syntax_plugin_navigation::getLevelItemSymbol($levelItem);
-            $result = "<span title='$levelItemName' style='display: inline-block; width: 2em; text-align: center;width: 2em'>$symbol</span>";
+            $result = $levelItemName.': ';
         }
         $result .= syntax_plugin_navigation::htmlMenuListItem($item, true);
         return $result;
-    }
-
-    public static function getLevelItemSymbol(string $levelItem)
-    {
-        switch ($levelItem)
-        {
-            case LevelItem::first:
-                $symbol = "|←";
-                break;
-            case LevelItem::previous:
-                $symbol = "←";
-                break;
-            case LevelItem::last:
-                $symbol = "→|";
-                break;
-            case LevelItem::next:
-                $symbol = "→";
-                break;
-            case LevelItem::inside:
-                $symbol = "↓";
-                break;
-            case LevelItem::outside:
-                $symbol = "↑";
-                break;
-            default:
-                $symbol = '';
-                break;
-        }
-        return $symbol;
     }
 
     public static function htmlListItem(array $item) : string
@@ -334,37 +304,43 @@ class syntax_plugin_navigation
 
     public function renderLevelItems(Doku_Renderer $renderer, array &$data)
     {
-        foreach ($data as $index => $item)
+        $mode = $data[0][Parameter::mode];
+        switch ($mode)
         {
-            if (!$item[Navigation::id])
-            {
-                unset($data[$index]);
-                $reindex = true;
-            }
+            case LevelItemsMode::list:
+                $this->renderTree($renderer, $data, false);
+                break;
+            case LevelItemsMode::symbols:
+                $renderer->doc .= $this->getLevelItemSymbols($data);
+                break;
         }
-        if ($reindex)
-            $data = array_values($data);
-        syntax_plugin_navigation::clearLevelItemDuplicate($data, LevelItem::first, LevelItem::previous);
-        syntax_plugin_navigation::clearLevelItemDuplicate($data, LevelItem::last, LevelItem::next);
-        $this->renderTree($renderer, $data, false);
     }
 
-    public static function getLevelItemIndex(array &$data, string $levelItem)
+    public function getLevelItemSymbols(array &$items) : string
     {
-        return array_search($levelItem, array_column($data, Navigation::levelItem));
+        $result = '<div class="'.Css::levelItems."\">\n";
+        foreach ($items as $item)
+            $result .= $this->getLevelItemSymbol($item)."\n";
+        $result .= '</div>';
+        return $result;
     }
 
-    public static function clearLevelItemDuplicate(array &$data, string $levelItem, string $levelItemDuplicate)
+    public function getLevelItemSymbol(array &$item) : string
     {
-        $index = syntax_plugin_navigation::getLevelItemIndex($data, $levelItem);
-        if ($index === false)
-            return;
-        $duplicateIndex = syntax_plugin_navigation::getLevelItemIndex($data, $levelItemDuplicate);
-        if ($duplicateIndex === false)
-            return;
-        if ($data[$index][Navigation::id] !== $data[$duplicateIndex][Navigation::id])
-            return;
-        unset($data[$duplicateIndex]);
-        $data = array_values($data);
+        $levelItem = $item[Navigation::levelItem];
+        $levelItemName = $item[Navigation::levelItemName];
+        $title = $item[Navigation::title];
+        $title = $title ?
+            $levelItemName.":\n".$title :
+            $levelItemName;
+        $id = $item[Navigation::id];
+        $class = Css::levelItem.' '.$levelItem;
+        if ($id)
+            $uri = wl($id);
+        else
+            $class .= ' '.Css::disabled;
+        return $uri ?
+            "<a class=\"$class\" title=\"$title\" href=\"$uri\">&nbsp;</a>" :
+            "<span class=\"$class\" title=\"$title\">&nbsp;</span>";
     }
 }

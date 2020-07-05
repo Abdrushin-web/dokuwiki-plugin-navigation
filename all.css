@@ -1,0 +1,49 @@
+.levelItems
+{
+   text-align: right;
+}
+
+.levelItem
+{
+   display: inline-block;
+   width: 24px;
+   height: 24px;
+   margin: 2px;
+}
+
+.levelItem.disabled
+{
+   opacity: .5;
+}
+
+a.levelItem:link,
+a.levelItem:hover,
+a.levelItem:visited,
+a.levelItem:active
+{
+   text-decoration: none;
+}
+
+.levelItem.Next {
+   background-image: url(images/Next.png);
+}
+
+.levelItem.Last {
+   background-image: url(images/Last.png);
+}
+
+.levelItem.Previous {
+   background-image: url(images/Previous.png);
+}
+
+.levelItem.First {
+   background-image: url(images/First.png);
+}
+
+.levelItem.Inside {
+   background-image: url(images/Inside.png);
+}
+
+.levelItem.Outside {
+   background-image: url(images/Outside.png);
+}
