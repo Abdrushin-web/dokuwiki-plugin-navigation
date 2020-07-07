@@ -30,7 +30,7 @@ class Content
 
     public static function formatDefinitionPageContentText(array $content) : string
     {
-        $text = '';
+        $text = DOKU_LF;
         foreach ($content as $item)
         {
             $id = $item[Navigation::id];
