@@ -60,7 +60,7 @@ class Content
                 $title = $parts[1];
             }
             else
-                $title = null;
+                $title = '';
             // allow full id instead of name only, but skip it if it is outside of $namespace
             list(
                 Navigation::namespace => $ns,
@@ -98,7 +98,7 @@ class Content
         return $result ?? [];
     }
 
-    public static function setTitle(string $id, string $title, bool $isNamespace)
+    public static function setTitle(string $id, string &$title, bool $isNamespace)
     {
         if ($isNamespace)
         {
