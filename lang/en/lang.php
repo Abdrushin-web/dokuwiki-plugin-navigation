@@ -20,3 +20,5 @@ $lang[LevelItem::first] = LevelItem::first;
 $lang[LevelItem::last] = LevelItem::last;
 $lang[LevelItem::inside] = LevelItem::inside;
 $lang[LevelItem::outside] = LevelItem::outside;
+$lang[LevelItem::top] = LevelItem::top;
+$lang[LevelItem::bottom] = LevelItem::bottom;

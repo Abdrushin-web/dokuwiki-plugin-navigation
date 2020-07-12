@@ -6,6 +6,11 @@
  */
 
 @include('../../Config.php');
+@include('lang.php');
 
 // keys need to match the config setting name
+
 $lang[Config::contentDefinitionPageName] = 'Název stránky s definicí obsahu';
+
+$lang[Config::pageMenuLevelItems] = 'Navigační menu stránky';
+Config::translatePageMenuLevelItems($lang);

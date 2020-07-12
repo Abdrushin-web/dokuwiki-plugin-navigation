@@ -25,25 +25,25 @@ a.levelItem:active
 }
 
 .levelItem.Next {
-   background-image: url(images/Next.png);
+   background-image: url(images/Next.svg);
 }
 
 .levelItem.Last {
-   background-image: url(images/Last.png);
+   background-image: url(images/Last.svg);
 }
 
 .levelItem.Previous {
-   background-image: url(images/Previous.png);
+   background-image: url(images/Previous.svg);
 }
 
 .levelItem.First {
-   background-image: url(images/First.png);
+   background-image: url(images/First.svg);
 }
 
 .levelItem.Inside {
-   background-image: url(images/Inside.png);
+   background-image: url(images/Inside.svg);
 }
 
 .levelItem.Outside {
-   background-image: url(images/Outside.png);
+   background-image: url(images/Outside.svg);
 }

@@ -19,3 +19,5 @@ $lang[LevelItem::first] = 'První';
 $lang[LevelItem::last] = 'Poslední';
 $lang[LevelItem::inside] = 'Uvnitř';
 $lang[LevelItem::outside] = 'Vně';
+$lang[LevelItem::top] = 'Nahoru';
+$lang[LevelItem::bottom] = 'Dolů';

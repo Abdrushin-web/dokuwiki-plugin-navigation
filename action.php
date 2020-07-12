@@ -5,6 +5,7 @@ if(!defined('DOKU_INC')) die();
 require_once 'Content.php';
 require_once 'Ids.php';
 require_once 'IPlugin.php';
+require_once 'LevelMenuItem.php';
 require_once 'Navigation.php';
 require_once 'Metadata.php';
 require_once 'Parameter.php';
@@ -19,13 +20,14 @@ class action_plugin_navigation
      *
      * @param Doku_Event_Handler $controller DokuWiki's event controller object.
      */
-    function register(Doku_Event_Handler $controller) {
+    function register(Doku_Event_Handler $controller)
+    {
         $controller->register_hook('HTML_EDITFORM_OUTPUT', 'BEFORE', $this, 'onPageEdit');
         $controller->register_hook('IO_WIKIPAGE_WRITE', 'AFTER', $this, 'onPageSave');
         $controller->register_hook('PARSER_CACHE_USE', 'AFTER', $this, 'onUseCache');
-        //$controller->register_hook('HTML_EDITFORM_OUTPUT', 'AFTER', $this, 'onEditForm');
-        //$controller->register_hook('TPL_ACT_RENDER', 'BEFORE', $this, '_loadindex');
-        //$controller->register_hook('TPL_CONTENT_DISPLAY', 'BEFORE', $this, '_showsort');
+        global $conf;
+        if (Config::hasPageMenuLevelItems($this))
+            $controller->register_hook('MENU_ITEMS_ASSEMBLY', 'AFTER', $this, 'addPageMenuLevelItems', null, 1);
     }
     
     function onPageEdit(&$event)
@@ -76,41 +78,18 @@ class action_plugin_navigation
             $event->result = false;
     }
 
-    // /**
-    //  * Render a defined page as index.
-    //  *
-    //  * @author Samuele Tognini <samuele@samuele.netsons.org>
-    //  *
-    //  * @param Doku_Event $event
-    //  * @param mixed      $param not defined
-    //  */
-    // function _loadindex(&$event, $param) {
-    //     if('index' != $event->data) return;
-    //     if(!file_exists(wikiFN($this->getConf('page_index')))) return;
-    //     global $lang;
-    //     print '<h1><a id="index" name="index">'.$lang['btn_index']."</a></h1>\n";
-    //     print p_wiki_xhtml($this->getConf('page_index'));
-    //     $event->preventDefault();
-    //     $event->stopPropagation();
-
-    // }
-
-    // /**
-    //  * Display the indexmenu sort number.
-    //  *
-    //  * @author Samuele Tognini <samuele@samuele.netsons.org>
-    //  *
-    //  * @param Doku_Event $event
-    //  * @param mixed      $param not defined
-    //  */
-    // function _showsort(&$event, $param) {
-    //     global $ID, $ACT, $INFO;
-    //     if($INFO['isadmin'] && $ACT == 'show') {
-    //         if($n = p_get_metadata($ID, 'indexmenu_n')) {
-    //             ptln('<div class="info">');
-    //             ptln($this->getLang('showsort').$n);
-    //             ptln('</div>');
-    //         }
-    //     }
-    // }
+    function addPageMenuLevelItems(&$event)
+    {
+        global $INFO;
+        if ($event->data['view'] !== 'page' || // not page menu
+            !$INFO['exists']) // page does not exist
+        {
+            return;
+        }
+        $levelItems = Config::getPageMenuLevelItems($this);
+        $items = Content::getLevelItems($this, $levelItems);
+        $menuItems = &$event->data['items'];
+        foreach ($items as $item)
+            $menuItems[] = new LevelMenuItem($this, $item);
+    }
 }

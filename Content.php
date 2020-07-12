@@ -579,6 +579,12 @@ class Content
                         $item[Navigation::name];
                 }
                 break;
+            case LevelItem::top:
+                $item[Navigation::id] = '#dokuwiki__header';
+                break;
+            case LevelItem::bottom:
+                $item[Navigation::id] = '#dokuwiki__footer';
+                break;
             default:
                 $unknown = true;
         }

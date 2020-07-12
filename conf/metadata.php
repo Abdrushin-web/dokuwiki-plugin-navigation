@@ -5,4 +5,10 @@
  * @author Marek Ištvánek <marek.istvanek@gmail.com>
  */
 
-$meta[Config::contentDefinitionPageName] = array('string');
+$meta[Config::contentDefinitionPageName] = [ 'string' ];
+$meta[Config::pageMenuLevelItems] =
+[
+    'multicheckbox',
+    '_other' => 'exists',
+    '_choices' => LevelItem::getDefaultPageMenuList()
+];

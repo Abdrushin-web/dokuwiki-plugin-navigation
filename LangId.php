@@ -9,4 +9,4 @@ class LangId
     const dateTimeFormat = 'dateTimeFormat';
 }
 
-@include('../../LevelItem.php');
+@require_once('LevelItem.php');

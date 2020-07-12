@@ -19,6 +19,7 @@ require_once 'Content.php';
 require_once 'CSS.php';
 require_once 'DateTimeMode.php';
 require_once 'Html.php';
+require_once 'Ids.php';
 require_once 'IPlugin.php';
 require_once 'LevelItem.php';
 require_once 'Metadata.php';
@@ -263,8 +264,15 @@ class syntax_plugin_navigation
         $levelItem = $item[Navigation::levelItem];
         if ($levelItem)
         {
-            $levelItemName = $item[Navigation::levelItemName];
-            $result = $levelItemName.': ';
+            if (LevelItem::isOnPage($levelItem))
+            {
+                $item[Navigation::title] = $item[Navigation::levelItemName];
+            }
+            else
+            {
+                $levelItemName = $item[Navigation::levelItemName];
+                $result = $levelItemName.': ';
+            }
         }
         $result .= syntax_plugin_navigation::htmlMenuListItem($item, true);
         return $result;
@@ -336,11 +344,7 @@ class syntax_plugin_navigation
     public function getLevelItemSymbol(array &$item) : string
     {
         $levelItem = $item[Navigation::levelItem];
-        $levelItemName = $this->getLang($levelItem);
-        $title = $item[Navigation::title];
-        $title = $title ?
-            $levelItemName.":\n".$title :
-            $levelItemName;
+        $title = LevelItem::getTitle($this, $item);
         $id = $item[Navigation::id];
         $class = Css::levelItem.' '.$levelItem;
         if ($id)

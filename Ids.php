@@ -129,9 +129,11 @@ class Ids
 
     public static function getNamespaceTitle(string $name, string $pageId, bool $inPage) : string
     {
-        return isset($pageId) ?
-            Ids::getPageTitle($pageId, $name, $inPage) :
-            $name;
+        if (isset($pageId))
+            $title = Ids::getPageTitle($pageId, $name, $inPage);
+        if (!$title)
+            $title = $name;
+        return $title;
     }
 
     public static function getPageTitle(string $id, string $name, bool $inPage) : string
