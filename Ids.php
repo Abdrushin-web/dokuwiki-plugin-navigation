@@ -70,7 +70,9 @@ class Ids
             $id = $namespace.NamespaceSeparator;
         else
         {
-            $id = Ids::join($namespace, $name);
+            $id = $namespace ?
+                Ids::join($namespace, $name) :
+                $name;
             if (!Ids::isRootNamespace($id))
                 $id .= NamespaceSeparator;
         }
