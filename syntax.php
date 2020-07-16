@@ -87,7 +87,8 @@ class syntax_plugin_navigation
             case Command::treeMenu:
             case Command::list:
             case Command::tree:
-            case Command::content:
+            case Command::contentList:
+            case Command::contentTree:
                 $data = $this->prepareTree($command, $parameters);
                 break;
             case Command::lastTreeChange:
@@ -116,11 +117,15 @@ class syntax_plugin_navigation
         $levelsText = $parameters[1];
         $levels =
             !$levelsText &&
-            $command === Command::list ?
+            (
+                $command === Command::list ||
+                $command === Command::contentList
+            ) ?
                 1 :
                 intval($levelsText);
         $skippedIds = [];
-        if ($command === Command::content)
+        if ($command === Command::contentList ||
+            $command === Command::contentTree)
         {
             global $ID;
             $skippedIds[] = $ID;
@@ -169,11 +174,15 @@ class syntax_plugin_navigation
                 case Command::treeMenu:
                 case Command::list:
                 case Command::tree:
-                case Command::content:
+                case Command::contentList:
+                case Command::contentTree:
                     $this->renderTree($renderer, $data, $command !== Command::treeMenu);
                     break;
+                case Command::namespaceLink:
+                    $this->renderLink($renderer, true);
+                    break;
                 case Command::link:
-                    $this->renderLink($renderer);
+                    $this->renderLink($renderer, false);
                     break;
                 case Command::lastTreeChange:
                     $this->renderLastTreeChange($renderer, $data);
@@ -223,21 +232,16 @@ class syntax_plugin_navigation
         }
     }
 
-    function renderLink(Doku_Renderer $renderer)
+    function renderLink(Doku_Renderer $renderer, bool $namespace)
     {
         global $ID;
         $id = $ID;
-        $data = Ids::getNamespaceAndName($id);
-        $isNamespace = $data[Navigation::isNamespace];
-        if (!$isNamespace)
+        if ($namespace)
         {
-            $namespaceId = Ids::getNamespaceId(($data[Navigation::namespace]));
-            $namespacePageId = Ids::getNamespacePageId($namespaceId);
-            $isNamespace = $id === $namespacePageId;
-            if ($isNamespace)
-                $id = $namespaceId;
+            $data = Ids::getNamespaceAndName($id);
+            $id = Ids::getNamespaceId(($data[Navigation::namespace]));
         }
-        $link  = $this->wikiLink($id, $isNamespace);
+        $link  = $this->wikiLink($id, $namespace);
         $renderer->externallink($link);
     }
 

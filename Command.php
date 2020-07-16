@@ -11,11 +11,14 @@ class Command
     public const list = 'List';
     // navigation in page tree with current namespace as default
     public const tree = 'Tree';
+    // navigation in page list with current namespace as default and without current page
+    public const contentList = 'ContentList';
     // navigation in page tree with current namespace as default and without current page
-    public const content = 'Content';
+    public const contentTree = 'ContentTree';
     
     // current namespace/page URI
     public const link = 'Link';
+    public const namespaceLink = 'NamespaceLink';
     
     // last namespace tree change
     public const lastTreeChange = 'LastTreeChange';
