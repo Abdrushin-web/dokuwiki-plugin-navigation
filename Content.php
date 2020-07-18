@@ -435,7 +435,7 @@ class Content
     {
         list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($id);
         $items = Content::searchNamespace($plugin, $namespace, 'Content::searchLastChange', 0, [], false);
-        return $items[0] ?? [];
+        return $items[0] ?? [ Metadata::date => time() ];
     }
 
     public static function searchLastChange(array &$items, string $basePath, string $path, string $type, int $level, array $parameters) : bool
