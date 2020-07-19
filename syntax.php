@@ -106,9 +106,9 @@ class syntax_plugin_navigation
     {
         $inPage = $command !== Command::treeMenu;
         $namespace = $parameters[0] ??
-            $inPage ?
+            ($inPage ?
                 '.' : // current
-                '';   // root
+                '');   // root
         if ($namespace === '.')
         {
             global $ID;
