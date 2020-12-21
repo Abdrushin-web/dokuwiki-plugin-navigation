@@ -7,3 +7,4 @@
 
 $conf[Config::pageMenuLevelItems] = Config::getDefaultPageMenuLevelItems();
 $conf[Config::contentDefinitionPageName] = Config::content;
+$conf[Config::versionsDefinitionPageName] = Config::versions;

@@ -1,5 +1,7 @@
 <?php
 
+use dokuwiki\ChangeLog\PageChangeLog;
+
 if(!defined('DOKU_INC')) die();
 
 require_once 'Content.php';
@@ -53,21 +55,38 @@ class action_plugin_navigation
     function onPageSave(&$event)
     {
         $name = $event->data[2];
+        $content = $event->data[0][1];
         $revision = $event->data[3];
         if (
-            !$event->result || // saving failed
-            $name !== Content::getDefinitionPageName($this) ||
+            $event->result === false || // saving failed (null means deleted)
             $revision // saved revision
             )
         {
             return;
         }
         // saved current
-        $namespace = $event->data[1];
-        if ($namespace === false)
-            $namespace = '';
-        $content = Content::parseDefinitionPageContent($this, $namespace);
-        Content::setDefinitionPageContent($this, $namespace, $content);
+        global $ID;
+        if ($name === Content::getDefinitionPageName($this))
+        {
+            $namespace = $event->data[1];
+            if ($namespace === false)
+                $namespace = '';
+            $content = Content::parseDefinitionPageContentText($namespace, $content);
+            Content::setDefinitionPageContent($this, $namespace, $content);
+            $title = $this->getLang(LangId::definitionPageTitle(Config::content));
+            Ids::setTitle($ID, $title);
+        }
+        else if ($name === Versions::getDefinitionPageName($this))
+        {
+            $pagelog = new PageChangeLog($ID);
+            $previousRevision = $pagelog->getRevisions(-1, 1)[0];
+            $oldContent = $previousRevision ?
+                rawWiki($ID, $previousRevision) :
+                '';
+            Versions::processDefinitionPageContentTexts($oldContent, $content);
+            $title = $this->getLang(LangId::definitionPageTitle(Config::versions));
+            Ids::setTitle($ID, $title);
+        }
     }
 
     function onUseCache(&$event)

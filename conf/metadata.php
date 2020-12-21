@@ -6,6 +6,7 @@
  */
 
 $meta[Config::contentDefinitionPageName] = [ 'string' ];
+$meta[Config::versionsDefinitionPageName] = [ 'string' ];
 $meta[Config::pageMenuLevelItems] =
 [
     'multicheckbox',

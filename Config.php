@@ -5,6 +5,7 @@
 class Config
 {
     public const contentDefinitionPageName = 'contentDefinitionPageName';
+    public const versionsDefinitionPageName = 'versionsDefinitionPageName';
 
     public const pageMenuLevelItems = 'pageMenuLevelItems';
 
@@ -37,6 +38,7 @@ class Config
 
     public const useHeading = 'useheading';
     public const content = 'content';
+    public const versions = 'versions';
     public const navigation = 'navigation';
 
     public const datadir = 'datadir';

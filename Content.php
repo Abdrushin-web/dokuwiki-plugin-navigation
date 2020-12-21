@@ -1,7 +1,5 @@
 <?php
 
-use dokuwiki\Parsing\ParserMode\Eol;
-
 require_once 'ACL.php';
 require_once 'array.php';
 require_once 'Config.php';
@@ -13,6 +11,7 @@ require_once 'LevelItemsMode.php';
 require_once 'Paths.php';
 require_once 'Parameter.php';
 require_once 'Text.php';
+require_once 'Versions.php';
 
 class Content
 {
@@ -45,29 +44,17 @@ class Content
         $content = Text::toLines($content);
         for ($i = 0; $i < count($content); $i++)
         {
-            // page/namespace name with optional title and enclosing to internal wiki link
-            $name = $content[$i];
-            $name = trim($name);
-            if (!$name)
+            $line = $content[$i];
+            list(Navigation::id => $id, Navigation::title => $title) = Ids::parseUnorderedListItemIdWithOptionalTitle($line);
+            if (!$id)
                 continue;
-            $name = ltrim($name, '* '); // strip unordered list
-            $name = trim($name, '[]'); // strip internal wiki link: [[name|title]]
-            // check optional title
-            $parts = explode('|', $name, 2);
-            if (count($parts) == 2)
-            {
-                $name = $parts[0];
-                $title = $parts[1];
-            }
-            else
-                $title = '';
             // allow full id instead of name only, but skip it if it is outside of $namespace
             list(
                 Navigation::namespace => $ns,
                 Navigation::name => $name,
                 Navigation::isNamespace => $isNamespace
                 ) =
-                Ids::getNamespaceAndName($name);
+                Ids::getNamespaceAndName($id);
             if (
                 $ns &&
                 $ns !== CurrentNamespaceName &&
@@ -87,7 +74,7 @@ class Content
             {
                 continue;
             }
-            Content::setTitle($id, $title, $isNamespace);
+            Ids::setTitle($id, $title, $isNamespace);
             $result[$id] =
             [
                 Navigation::title => $title,
@@ -96,26 +83,6 @@ class Content
             ];
         }
         return $result ?? [];
-    }
-
-    public static function setTitle(string $id, string &$title, bool $isNamespace)
-    {
-        if ($isNamespace)
-        {
-            $namespacePageId = Ids::getNamespacePageId($id);
-            if (!$namespacePageId)
-                return;
-            $id = $namespacePageId;
-        }
-        $noTitle = !$title;
-        p_set_metadata(
-            $id,
-            $noTitle ?
-                [] :
-                [ Metadata::title => $title ],
-            $noTitle, // render
-            !$noTitle // persist
-            );
     }
 
     public static function parseDefinitionPageContent(IPlugin $plugin, string $namespace) : array
@@ -175,7 +142,7 @@ class Content
      * @param string          $namespace                  Name of namespace to start at. '' means root one.
      * @param int             $levels                     Number of tree child levels to get. 0 means all.
      * @param array           $skippedIds                 Page identifiers to skip
-     * @param bool            $skipContentDefinitionPage  Whether to skip Content definition pages
+     * @param bool            $addDefinitionPages         Whether to add Content/Versions definition pages
      */
     public static function getTree(
         IPlugin $plugin,
@@ -183,7 +150,7 @@ class Content
         string $namespace,
         int $levels = 0,
         array $skippedIds = [],
-        bool $addContentDefinitionPage = true
+        bool $addDefinitionPages = true
         ) : array
     {
         $items = Content::searchNamespace($plugin, $namespace, 'Content::searchNamespaceItem', $levels, $skippedIds);
@@ -204,7 +171,7 @@ class Content
         }
         usort($items, 'Content::sortTree');
         if ($inPage === false &&
-            $addContentDefinitionPage)
+            $addDefinitionPages)
         {
             Content::addDefinitionPageItems($plugin, $namespace, $items);
         }
@@ -326,7 +293,7 @@ class Content
         string $searchItemMethodName,
         int $levels = 0,
         array $skippedIds = [],
-        bool $skipContentDefinitionPage = true
+        bool $skipDefinitionPages = true
         ) : array
     {
         global $conf;
@@ -335,8 +302,11 @@ class Content
         [
             Parameter::levels => $levels,
             Parameter::skippedIds => $skippedIds,
-            Parameter::contentDefinitionPageName => $skipContentDefinitionPage ?
-                Content::getDefinitionPageName($plugin) :
+            Parameter::definitionPageNames => $skipDefinitionPages ?
+                [
+                    Content::getDefinitionPageName($plugin),
+                    Versions::getDefinitionPageName($plugin),
+                ] :
                 null
         ];
         $folder = utf8_encodeFN(str_replace(NamespaceSeparator, PathSeparator, $namespace));
@@ -348,7 +318,7 @@ class Content
     {
         $levels = $parameters[Parameter::levels];
         $skippedIds = $parameters[Parameter::skippedIds];
-        $definitionPageName = $parameters[Parameter::contentDefinitionPageName];
+        $definitionPageNames = $parameters[Parameter::definitionPageNames];
         // check level
         if ($levels > 0 &&
             $level > $levels)
@@ -381,7 +351,9 @@ class Content
             return false;
         // item
         $item = Ids::getNamespaceAndName($id);
-        if ($item[Navigation::name] === $definitionPageName)
+        // skip definition pages if specified
+        if ($definitionPageNames &&
+            array_search($item[Navigation::name], $definitionPageNames, true) !== false)
             return false;
         $item[Navigation::id] = $id;
         $item[Navigation::isNamespace] = $isNamespace;
@@ -393,7 +365,11 @@ class Content
 
     private static function addDefinitionPageItems(IPlugin $plugin, string $namespace, array &$items)
     {
-        $pageName = Content::getDefinitionPageName($plugin);
+        $pageTypeToName =
+        [
+            Config::content => Content::getDefinitionPageName($plugin),
+            Config::versions => Versions::getDefinitionPageName($plugin)
+        ];
         for ($i = count($items) - 1; $i >= 0; $i--)
         {
             $item = $items[$i];
@@ -402,16 +378,30 @@ class Content
                 continue;
             $namespaceId = $item[Navigation::id];
             $level = $item[Navigation::level] + 1;
-            Content::insertDefinitionPageItem($plugin, $items, $namespaceId, $pageName, $level, $i + 1);
+            Content::insertDefinitionPageItems($plugin, $items, $namespaceId, $pageTypeToName, $level, $i + 1);
         }
         $namespaceId = Ids::getNamespaceId($namespace);
-        Content::insertDefinitionPageItem($plugin, $items, $namespaceId, $pageName, 1, 0);
+        Content::insertDefinitionPageItems($plugin, $items, $namespaceId, $pageTypeToName, 1, 0);
+    }
+
+    private static function insertDefinitionPageItems(
+        IPlugin $plugin,
+        array &$items,
+        string $namespaceId,
+        array &$pageTypeToName,
+        int $level,
+        int $index
+        )
+    {
+        foreach ($pageTypeToName as $pageType => $pageName)
+            Content::insertDefinitionPageItem($plugin, $items, $namespaceId, $pageType, $pageName, $level, $index++);
     }
 
     private static function insertDefinitionPageItem(
         IPlugin $plugin,
         array &$items,
         string $namespaceId,
+        string $pageType,
         string $pageName,
         int $level,
         int $index
@@ -427,7 +417,7 @@ class Content
             Navigation::name => $pageName,
             Navigation::level => $level
         ];
-        $item[Navigation::isContentDefinitionPage] = true;
+        $item[Navigation::definitionPageType] = $pageType;
         array_insert($items, $index, [ $item ]);
     }
 

@@ -10,8 +10,8 @@ class Parameter
     public const levels = 'levels';
     // namespace/page identifiers to skip
     public const skippedIds = 'skippedIds';
-    // Content definition page name
-    public const contentDefinitionPageName = 'contentDefinitionPageName';
+    // definition page names
+    public const definitionPageNames = 'definitionPageNames';
 
     // mode of operation
     public const mode = 'mode';

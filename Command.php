@@ -22,4 +22,7 @@ class Command
     
     // last namespace tree change
     public const lastTreeChange = 'LastTreeChange';
+
+    // page versions
+    public const versions = 'Versions';
 }

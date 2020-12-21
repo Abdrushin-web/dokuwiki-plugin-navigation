@@ -11,6 +11,7 @@
 // keys need to match the config setting name
 
 $lang[Config::contentDefinitionPageName] = 'Název stránky s definicí obsahu';
+$lang[Config::versionsDefinitionPageName] = 'Název stránky s definicí verzí';
 
 $lang[Config::pageMenuLevelItems] = 'Navigační menu stránky';
 Config::translatePageMenuLevelItems($lang);

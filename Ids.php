@@ -138,6 +138,13 @@ class Ids
         return $title;
     }
 
+    public static function getNamespaceIdTitle(string $id, bool $inPage) : string
+    {
+        list(Navigation::name => $name) = Ids::getNamespaceAndName($id);
+        $pageId = Ids::getNamespacePageId($id);
+        return Ids::getNamespaceTitle($name, $pageId, $inPage);
+    }
+
     public static function getPageTitle(string $id, string $name, bool $inPage) : string
     {
         if (Ids::useHeading($inPage))
@@ -145,5 +152,103 @@ class Ids
         if (!isset($value))
             $value = $name;
         return $value;
+    }
+
+    public static function parseUnorderedListItemIdWithOptionalTitle(string $text) : array
+    {
+        // page/namespace id with optional title and enclosing to internal wiki link
+        $id = ltrim($text);
+        $level = (strlen($text) - strlen($id)) / 2; // list indentation level
+        $id = rtrim($id);
+        $title = '';
+        if ($id)
+        {
+            // unordered list
+            if ($id[0] == '*')
+            {
+                $id = ltrim($id, '* '); // strip unordered list
+                $id = trim($id, '[]'); // strip internal wiki link: [[name|title]]
+                // check optional title
+                $parts = explode('|', $id, 2);
+                if (count($parts) == 2)
+                {
+                    $id = $parts[0];
+                    $title = $parts[1];
+                }
+            }
+            else
+                $id = '';
+        }
+        return
+        [
+            Navigation::id => $id,
+            Navigation::title => $title,
+            Navigation::level => $level
+        ];
+    }
+
+    public static function setTitle(string $id, string $title, bool $isNamespace = false)
+    {
+        if ($isNamespace)
+        {
+            $namespacePageId = Ids::getNamespacePageId($id);
+            if (!$namespacePageId)
+                return;
+            $id = $namespacePageId;
+        }
+        if (!$title)
+            $title = null;
+        p_set_metadata(
+            $id,
+            [ Metadata::title => $title ]);
+        if (!$title)
+        {
+            // remove title from persistent metadata
+            $metadata = p_read_metadata($id);
+            $persistentMetadata = &$metadata[Metadata::persistent];
+            unset($persistentMetadata[Metadata::title]);
+            p_save_metadata($id, $metadata);
+            // parse title to current metadata
+            p_get_first_heading($id, METADATA_RENDER_UNLIMITED);
+        }
+    }
+
+    public static function getCommonNamespace(string $namespace1, string $namespace2) : string
+    {
+        if ($namespace1 == $namespace2)
+            $common = $namespace1;
+        $common = '';
+        do
+        {
+            $first1 = Ids::trimFirstNamespace($namespace1);
+            $first2 = Ids::trimFirstNamespace($namespace2);
+            if ($first1 &&
+                $first1 == $first2)
+            {
+                $common = $common ?
+                    Ids::join($common, $first1) :
+                    $first1;
+            }
+            else
+                break;
+        }
+        while (true);
+        return $common;
+    }
+
+    public static function trimFirstNamespace(string &$namespace) : string
+    {
+        $index = strpos($namespace, NamespaceSeparator);
+        if ($index === false)
+        {
+            $result = $namespace;
+            $namespace = '';
+        }
+        else
+        {
+            $result = substr($namespace, 0, $index);
+            $namespace = substr($namespace, $index + 1);
+        }
+        return $result;
     }
 }

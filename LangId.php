@@ -2,7 +2,10 @@
 
 class LangId
 {
-    const contentDefinitionPageTitle = 'contentDefinitionPageTitle';
+    public static function definitionPageTitle(string $pageType)
+    {
+        return $pageType.'DefinitionPageTitle';
+    }
 
     const dateFormat = 'dateFormat';
     const timeFormat = 'timeFormat';

@@ -6,8 +6,10 @@
  */
 
 @include('../../LangId.php');
+@include('../../Config.php');
 
-$lang[LangId::contentDefinitionPageTitle] = 'Obsah';
+$lang[LangId::definitionPageTitle(Config::content)] = 'Obsah';
+$lang[LangId::definitionPageTitle(Config::versions)] = 'Verze';
 
 $lang[LangId::dateFormat] = 'j. n. Y';
 $lang[LangId::timeFormat] = 'G:i';

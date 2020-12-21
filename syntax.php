@@ -97,6 +97,20 @@ class syntax_plugin_navigation
             case Command::levelMenu:
                 $data = Content::getLevelItems($this, $parameters);
                 break;
+            case Command::versions:
+                $data = Versions::get($parameters);
+                break;
+            case Command::namespaceLink:
+                global $ID;
+                $namespace = $parameters[0];
+                if (!$namespace)
+                    list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($ID);
+                $data[Navigation::id] = Ids::getNamespaceId($namespace);
+                break;
+            case Command::link:
+                global $ID;
+                $data[Navigation::id] = $parameters[0] ?? $ID;
+                break;
         }
         $data[Parameter::command] = $command;
         return $data;
@@ -116,13 +130,12 @@ class syntax_plugin_navigation
         }
         $levelsText = $parameters[1];
         $levels =
-            !$levelsText &&
-            (
-                $command === Command::list ||
-                $command === Command::contentList
-            ) ?
+            $command === Command::list ||
+            $command === Command::contentList ?
                 1 :
-                intval($levelsText);
+                ($levelsText ?
+                    intval($levelsText) :
+                    0);
         $skippedIds = [];
         if ($command === Command::contentList ||
             $command === Command::contentTree)
@@ -148,8 +161,12 @@ class syntax_plugin_navigation
     function getLastTreeChange(array $parameters) : array
     {
         global $ID;
-        $mode = $parameters[0] ?? DateTimeMode::DateTime;
-        $data = Content::getLastTreeChange($this, $ID);
+        $modeIndex = count($parameters) > 1 ? 1 : 0;
+        $id = $modeIndex ?
+            Ids::getNamespaceId($parameters[0]) :
+            $ID;
+        $mode = $parameters[$modeIndex] ?? DateTimeMode::DateTime;
+        $data = Content::getLastTreeChange($this, $id);
         $data[Parameter::mode] = $mode;
         return $data;
     }
@@ -179,16 +196,19 @@ class syntax_plugin_navigation
                     $this->renderTree($renderer, $data, $command !== Command::treeMenu);
                     break;
                 case Command::namespaceLink:
-                    $this->renderLink($renderer, true);
+                    $this->renderLink($renderer, $data[Navigation::id], true);
                     break;
                 case Command::link:
-                    $this->renderLink($renderer, false);
+                    $this->renderLink($renderer, $data[Navigation::id], false);
                     break;
                 case Command::lastTreeChange:
                     $this->renderLastTreeChange($renderer, $data);
                     break;
                 case Command::levelMenu:
                     $this->renderLevelItems($renderer, $data);
+                    break;
+                case Command::versions:
+                    $this->renderVersions($renderer, $data);
                     break;
                 default:
                     return false;
@@ -220,8 +240,9 @@ class syntax_plugin_navigation
         {
             foreach ($data as &$item)
             {
-                if ($item[Navigation::isContentDefinitionPage])
-                    $item[Navigation::title] = $this->getLang(LangId::contentDefinitionPageTitle);
+                $definitionPageType = $item[Navigation::definitionPageType];
+                if ($definitionPageType)
+                    $item[Navigation::title] = $this->getLang(LangId::definitionPageTitle($definitionPageType));
             }
             $renderer->doc .= html_buildlist(
                 $data,
@@ -232,15 +253,8 @@ class syntax_plugin_navigation
         }
     }
 
-    function renderLink(Doku_Renderer $renderer, bool $namespace)
+    function renderLink(Doku_Renderer $renderer, string $id, bool $namespace)
     {
-        global $ID;
-        $id = $ID;
-        if ($namespace)
-        {
-            $data = Ids::getNamespaceAndName($id);
-            $id = Ids::getNamespaceId(($data[Navigation::namespace]));
-        }
         $link  = $this->wikiLink($id, $namespace);
         $renderer->externallink($link);
     }
@@ -358,5 +372,87 @@ class syntax_plugin_navigation
         return $uri ?
             "<a class=\"$class\" title=\"$title\" href=\"$uri\">&nbsp;</a>" :
             "<span class=\"$class\" title=\"$title\">&nbsp;</span>";
+    }
+
+    public function renderVersions(Doku_Renderer $renderer, array &$data)
+    {
+        $versions = $data[Navigation::versions];
+        if (!$versions)
+            return;
+        global $lang;
+        $forId = $data[Navigation::id];
+        $currentId = Ids::currentPageId();
+        $diff = $currentId === $forId;
+        $difftype = '';
+        foreach ($versions as $version)
+        {
+            if ($version[Navigation::id] === $forId)
+            {
+                $forVersion = $version;
+                break;
+            }
+        }
+        $renderer->listu_open();
+        $level = 1;
+        if ($diff)
+        {
+            $renderer->listitem_open($level++, true);
+            $renderer->doc .= '<div class="li">'.$this->getLang(LangId::definitionPageTitle(Config::versions)).'</div>';
+            $renderer->listu_open();
+            $forVersionTitle = $forVersion[Navigation::title];
+        }
+        $previousVersionLevel = 1;
+        $versionIndex = 0;
+        foreach ($versions as $version)
+        {
+            $id = $version[Navigation::id];
+            $title = $version[Navigation::title];
+            $title = Versions::getTitle($id, $title, $forId);
+            $versionLevel = $version[Navigation::level];
+            for ($i = 0; $i < $previousVersionLevel - $versionLevel; $i++)
+            {
+                $renderer->listu_close();
+                $level--;
+            }
+            if ($versionLevel < $previousVersionLevel &&
+                $versionLevel == 1)
+            {
+                $renderer->listitem_close();
+            }
+            for ($i = 0; $i < $versionLevel - $previousVersionLevel; $i++)
+            {
+                $renderer->listu_open();
+                $level++;
+            }
+            $renderer->listitem_open($level);
+            if ($id === $currentId)
+                $renderer->doc .= '<div class="li">'.$title.'</div>';
+            else
+            {
+                $renderer->internallink($id, $title);
+                if ($diff)
+                {
+                    $imageTitle = $lang['diff'];
+                    $image = '<img style="margin-left: 10px" src="'.DOKU_BASE.'lib/images/diff.png" width="15" height="11" title="'.$imageTitle.'" alt="'.$imageTitle.'" />';
+                    $forVersionName = Versions::getTitle($forId, $forVersionTitle, $id);
+                    $renderer->doc .= html_diff_another_page_navigationlink($difftype, $forVersionName, $id, $title, $image);
+                }
+            }
+            $versionIndex++;
+            $nextVersionLevel = $versions[$versionIndex][Navigation::level];
+            if ($versionLevel == $nextVersionLevel)
+                $renderer->listitem_close();
+            $previousVersionLevel = $versionLevel;
+        }
+        for ($i = 1; $i < $previousVersionLevel; $i++)
+            $renderer->listu_close();
+        if ($previousVersionLevel > 1)
+            $renderer->listitem_close();
+        if ($diff)
+        {
+            $renderer->listu_close();
+            $renderer->listitem_close();
+        }
+        $renderer->listu_close();
     }
 }

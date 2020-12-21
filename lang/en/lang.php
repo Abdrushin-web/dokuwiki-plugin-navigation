@@ -7,7 +7,8 @@
 
 @include('../../LangId.php');
 
-$lang[LangId::contentDefinitionPageTitle] = 'Content';
+$lang[LangId::definitionPageTitle(Config::content)] = 'Content';
+$lang[LangId::definitionPageTitle(Config::versions)] = 'Versions';
 
 // British time
 $lang[LangId::dateFormat] = 'd/m/Y';
