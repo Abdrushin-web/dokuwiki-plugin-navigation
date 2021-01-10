@@ -77,11 +77,10 @@ class syntax_plugin_navigation
      */
     public function handle($match, $state, $pos, Doku_Handler $handler)
     {
-        // {Navigation|Command[|Parameter1|...|ParameterN]}
-        $match = trim($match, '{}');
-        $items = explode('|', $match);
-        $command = $items[1];
-        $parameters = array_slice($items, 2);
+        list (
+            Parameter::command => $command,
+            Parameter::parameters => $parameters
+            ) = Parameter::processNavigationSyntax($match);
         switch ($command)
         {
             case Command::treeMenu:
@@ -89,16 +88,22 @@ class syntax_plugin_navigation
             case Command::tree:
             case Command::contentList:
             case Command::contentTree:
-                $data = $this->prepareTree($command, $parameters);
+                $data = Content::prepareTree($this, $command, $parameters);
                 break;
             case Command::lastTreeChange:
-                $data = $this->getLastTreeChange($parameters);
+                $data = Content::getLastTreeChangeFromParameters($this, $parameters);
                 break;
             case Command::levelMenu:
                 $data = Content::getLevelItems($this, $parameters);
                 break;
             case Command::versions:
                 $data = Versions::get($parameters);
+                break;
+            case Command::versionDiffLink:
+                $data = Versions::getDiffLinkData($parameters);
+                break;
+            case Command::versionDiffAnchorLink:
+                $data = Versions::getDiffAnchorLinkData($parameters);
                 break;
             case Command::namespaceLink:
                 global $ID;
@@ -113,61 +118,6 @@ class syntax_plugin_navigation
                 break;
         }
         $data[Parameter::command] = $command;
-        return $data;
-    }
-
-    function prepareTree(string $command, array $parameters) : array
-    {
-        $inPage = $command !== Command::treeMenu;
-        $namespace = $parameters[0] ??
-            ($inPage ?
-                '.' : // current
-                '');   // root
-        if ($namespace === '.')
-        {
-            global $ID;
-            list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($ID);
-        }
-        $levelsText = $parameters[1];
-        $levels =
-            $command === Command::list ||
-            $command === Command::contentList ?
-                1 :
-                ($levelsText ?
-                    intval($levelsText) :
-                    0);
-        $skippedIds = [];
-        if ($command === Command::contentList ||
-            $command === Command::contentTree)
-        {
-            global $ID;
-            $skippedIds[] = $ID;
-        }
-        foreach ($parameters as $parameter)
-        {
-            if ($parameter[0] !== '-')
-                continue;
-            $id = substr($parameter, 1);
-            if ($id === '.')
-            {
-                global $ID;
-                $id = $ID;
-            }
-            $skippedIds[] = $id;
-        }
-        return Content::getTree($this, $inPage, $namespace, $levels, $skippedIds);
-    }
-
-    function getLastTreeChange(array $parameters) : array
-    {
-        global $ID;
-        $modeIndex = count($parameters) > 1 ? 1 : 0;
-        $id = $modeIndex ?
-            Ids::getNamespaceId($parameters[0]) :
-            $ID;
-        $mode = $parameters[$modeIndex] ?? DateTimeMode::DateTime;
-        $data = Content::getLastTreeChange($this, $id);
-        $data[Parameter::mode] = $mode;
         return $data;
     }
 
@@ -209,6 +159,12 @@ class syntax_plugin_navigation
                     break;
                 case Command::versions:
                     $this->renderVersions($renderer, $data);
+                    break;
+                case Command::versionDiffLink:
+                    $this->renderVersionDiffLink($renderer, $data);
+                    break;
+                case Command::versionDiffAnchorLink:
+                    $this->renderVersionDiffAnchorLink($renderer, $data);
                     break;
                 default:
                     return false;
@@ -379,10 +335,11 @@ class syntax_plugin_navigation
         $versions = $data[Navigation::versions];
         if (!$versions)
             return;
-        global $lang;
         $forId = $data[Navigation::id];
         $currentId = Ids::currentPageId();
-        $diff = $currentId === $forId;
+        $inPage = $forId !== $currentId;
+        $root = $data[Navigation::root];
+        $diff = $data[Navigation::diff];
         $difftype = '';
         foreach ($versions as $version)
         {
@@ -392,22 +349,36 @@ class syntax_plugin_navigation
                 break;
             }
         }
-        $renderer->listu_open();
-        $level = 1;
         if ($diff)
+        {
+            $linkId = Versions::getDiffAnchorLinkId($forId);
+            $renderer->doc .= "<ul id=\"$linkId\">";
+        }
+        else
+            $renderer->listu_open();
+        $level = 1;
+        if ($root)
         {
             $renderer->listitem_open($level++, true);
             $renderer->doc .= '<div class="li">'.$this->getLang(LangId::definitionPageTitle(Config::versions)).'</div>';
             $renderer->listu_open();
-            $forVersionTitle = $forVersion[Navigation::title];
         }
+        if ($diff)
+            $forTitle = $forVersion[Navigation::title] ?? '';
         $previousVersionLevel = 1;
         $versionIndex = 0;
         foreach ($versions as $version)
         {
             $id = $version[Navigation::id];
+            $isForId = $id === $forId;
+            $select = $isForId && $diff;
             $title = $version[Navigation::title];
-            $title = Versions::getTitle($id, $title, $forId);
+            $contentTitle = Versions::getTitle(
+                $id, $title,
+                $inPage ?
+                    $currentId :
+                    $forId,
+                $inPage);
             $versionLevel = $version[Navigation::level];
             for ($i = 0; $i < $previousVersionLevel - $versionLevel; $i++)
             {
@@ -425,19 +396,16 @@ class syntax_plugin_navigation
                 $level++;
             }
             $renderer->listitem_open($level);
-            if ($id === $currentId)
-                $renderer->doc .= '<div class="li">'.$title.'</div>';
-            else
-            {
-                $renderer->internallink($id, $title);
-                if ($diff)
-                {
-                    $imageTitle = $lang['diff'];
-                    $image = '<img style="margin-left: 10px" src="'.DOKU_BASE.'lib/images/diff.png" width="15" height="11" title="'.$imageTitle.'" alt="'.$imageTitle.'" />';
-                    $forVersionName = Versions::getTitle($forId, $forVersionTitle, $id);
-                    $renderer->doc .= html_diff_another_page_navigationlink($difftype, $forVersionName, $id, $title, $image);
-                }
-            }
+            if ($select)
+                $renderer->doc .= '<strong>';
+            // if ($id === $currentId)
+            //     $renderer->doc .= '<div class="li">'.$contentTitle.'</div>';
+            // else
+            $renderer->internallink($id, $contentTitle);
+            if ($select)
+                $renderer->doc .= '</strong>';
+            if ($diff && !$isForId)
+                $renderer->doc .= '&nbsp;'.$this->versionDiffLink($forId, $forTitle, $id, $title, $inPage, $difftype);
             $versionIndex++;
             $nextVersionLevel = $versions[$versionIndex][Navigation::level];
             if ($versionLevel == $nextVersionLevel)
@@ -448,11 +416,65 @@ class syntax_plugin_navigation
             $renderer->listu_close();
         if ($previousVersionLevel > 1)
             $renderer->listitem_close();
-        if ($diff)
+        if ($root)
         {
             $renderer->listu_close();
             $renderer->listitem_close();
         }
         $renderer->listu_close();
+    }
+
+    public function versionDiffImage(string $title = '') : string
+    {
+        if (!$title)
+        {
+            global $lang;
+            $title = $lang['diff'];
+        }
+        return '<img src="'.DOKU_BASE.'lib/images/diff.png" width="15" height="11" title="'.$title.'" alt="'.$title.'" />';
+    }
+
+    public function versionDiffLink(
+        string $id1, string $title1,
+        string $id2, string $title2,
+        bool $inPage,
+        string $difftype = '',
+        string $title = '') : string
+    {
+        $name1 = Versions::getTitle($id1, $title1, $id2, $inPage);
+        $name2 = Versions::getTitle($id2, $title2, $id1, $inPage);
+        $content = $this->versionDiffLinkContent($title);
+        return html_diff_another_page_navigationlink($difftype, $name1, $id2, $name2, $content, false, $id1);
+    }
+
+    public function versionDiffLinkContent(string $title = '') : string
+    {
+        $image = $this->versionDiffImage();
+        $content = $title ?
+            "$title&nbsp;$image" :
+            $image;
+        return $content;
+    }
+
+    public function renderVersionDiffLink(Doku_Renderer $renderer, array &$data)
+    {
+        $page1 = $data[Parameter::page1];
+        $page2 = $data[Parameter::page2];
+        $title = $data[Parameter::title];
+        $difftype = $data[Parameter::diffType];
+        $renderer->doc .= $this->versionDiffLink(
+            $page1[Navigation::id], $page1[Navigation::title],
+            $page2[Navigation::id], $page2[Navigation::title],
+            true, $difftype, $title);
+    }
+
+    public function renderVersionDiffAnchorLink(Doku_Renderer $renderer, array &$data)
+    {
+        $diffPageId = $data[Parameter::diffPageId];
+        $diffAnchorPageId = $data[Parameter::diffAnchorPageId];
+        $title = $data[Parameter::title];
+        $link = Versions::getDiffAnchorLink($diffPageId, $diffAnchorPageId);
+        $content = $this->versionDiffLinkContent($title);
+        $renderer->doc .= "<a href=\"$link\">$content</a>";
     }
 }

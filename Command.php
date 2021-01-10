@@ -25,4 +25,8 @@ class Command
 
     // page versions
     public const versions = 'Versions';
+    // page versions diff link
+    public const versionDiffLink = 'VersionDiffLink';
+    // page versions diff anchor link
+    public const versionDiffAnchorLink = 'VersionDiffAnchorLink';
 }

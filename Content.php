@@ -134,6 +134,52 @@ class Content
         return $done;
     }
 
+    public static function prepareTree(IPlugin $plugin, string $command, array $parameters) : array
+    {
+        $inPage = $command !== Command::treeMenu;
+        $namespace = $parameters[0] ??
+            ($inPage ?
+                '.' : // current
+                '');   // root
+        if ($namespace === '.')
+        {
+            global $ID;
+            list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($ID);
+        }
+        else
+            list(Navigation::namespace => $namespace) = Ids::parseNamespaceFromOptionalLink($namespace);
+        $levelsText = $parameters[1];
+        $levels =
+            $command === Command::list ||
+            $command === Command::contentList ?
+                1 :
+                ($levelsText ?
+                    intval($levelsText) :
+                    0);
+        $skippedIds = [];
+        if ($command === Command::contentList ||
+            $command === Command::contentTree)
+        {
+            global $ID;
+            $skippedIds[] = $ID;
+        }
+        foreach ($parameters as $parameter)
+        {
+            if ($parameter[0] !== '-')
+                continue;
+            $id = substr($parameter, 1);
+            if ($id === '.')
+            {
+                global $ID;
+                $id = $ID;
+            }
+            else
+            list(Navigation::id => $id) = Ids::parseIdWithOptionalTitleFromOptionalLink($id);
+            $skippedIds[] = $id;
+        }
+        return Content::getTree($plugin, $inPage, $namespace, $levels, $skippedIds);
+    }
+
     /**
      * Get navigation content tree
      * 
@@ -419,6 +465,19 @@ class Content
         ];
         $item[Navigation::definitionPageType] = $pageType;
         array_insert($items, $index, [ $item ]);
+    }
+
+    public static function getLastTreeChangeFromParameters(IPlugin $plugin, array $parameters) : array
+    {
+        global $ID;
+        $modeIndex = count($parameters) > 1 ? 1 : 0;
+        $id = $modeIndex ?
+            Ids::getNamespaceId($parameters[0]) :
+            $ID;
+        $mode = $parameters[$modeIndex] ?? DateTimeMode::DateTime;
+        $data = Content::getLastTreeChange($plugin, $id);
+        $data[Parameter::mode] = $mode;
+        return $data;
     }
 
     public static function getLastTreeChange(IPlugin $plugin, string $id) : array

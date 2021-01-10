@@ -15,4 +15,7 @@ class Navigation
     public const levelItem = 'levelItem';
     public const levelItemName = 'levelItemName';
     public const versions = 'versions';
+    public const isLink = 'isLink';
+    public const root = 'root';
+    public const diff = 'diff';
 }

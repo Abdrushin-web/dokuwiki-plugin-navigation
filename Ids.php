@@ -167,14 +167,7 @@ class Ids
             if ($id[0] == '*')
             {
                 $id = ltrim($id, '* '); // strip unordered list
-                $id = trim($id, '[]'); // strip internal wiki link: [[name|title]]
-                // check optional title
-                $parts = explode('|', $id, 2);
-                if (count($parts) == 2)
-                {
-                    $id = $parts[0];
-                    $title = $parts[1];
-                }
+                list(Navigation::id => $id, Navigation::title => $title) = Ids::parseIdWithOptionalTitleFromOptionalLink($id);
             }
             else
                 $id = '';
@@ -185,6 +178,47 @@ class Ids
             Navigation::title => $title,
             Navigation::level => $level
         ];
+    }
+
+    public static function parseIdWithOptionalTitleFromOptionalLink(string $text) : array
+    {
+        $id = trim($text);
+        $title = '';
+        // internal wiki link: [[name|title]]
+        $link = substr($id, 0, 2) == '[[' &&
+                substr($id, -2, 2) == ']]';
+        // strip link wrapper
+        if ($link)
+            $id = substr($id, 2, strlen($id) - 4);
+        // check optional title
+        $parts = explode('|', $id, 2);
+        if (count($parts) == 2)
+        {
+            $id = $parts[0];
+            $title = $parts[1];
+        }
+        return
+        [
+            Navigation::id => $id,
+            Navigation::title => $title,
+            Navigation::isLink => $link
+        ];
+    }
+
+    public static function parseNamespaceFromOptionalLink(string $text) : array
+    {
+        $result = Ids::parseIdWithOptionalTitleFromOptionalLink($text);
+        $id = $result[Navigation::id];
+        unset($result[Navigation::id]);
+        if ($id &&
+            $result[Navigation::isLink])
+        {
+            $napespaceAndName = Ids::getNamespaceAndName($id);
+            $result = array_merge($result, $napespaceAndName);
+        }
+        else
+            $result[Navigation::namespace] = $id;
+        return $result;
     }
 
     public static function setTitle(string $id, string $title, bool $isNamespace = false)
