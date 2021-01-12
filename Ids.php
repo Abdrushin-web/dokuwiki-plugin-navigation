@@ -108,6 +108,13 @@ class Ids
                 '';
     }
 
+    public static function isNamespacePageId(string $id) : bool
+    {
+        list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($id);
+        $namespaceId = Ids::getNamespaceId($namespace);
+        return Ids::getNamespacePageId($namespaceId, false) === $id;
+    }
+
     public static function pageExists(string $namespace, string $name, string &$id) : bool
     {
         $id = Ids::join($namespace, $name);

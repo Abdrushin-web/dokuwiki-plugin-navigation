@@ -156,8 +156,12 @@ class Versions
                 $namespaceTitle = Ids::getNamespaceIdTitle($namespaceId, $inPage);
                 $title = Versions::addBreadcrumb($title, $namespaceTitle);
             }
-            $pageTitle = Ids::getPageTitle($id1, '', $inPage);
-            $title = Versions::addBreadcrumb($title, $pageTitle);
+            if (!$namespaceIds ||
+                !Ids::isNamespacePageId($id1))
+            {
+                $pageTitle = Ids::getPageTitle($id1, '', $inPage);
+                $title = Versions::addBreadcrumb($title, $pageTitle);
+            }
         }
         return $title;
     }
