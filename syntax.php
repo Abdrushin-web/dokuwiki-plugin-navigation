@@ -431,7 +431,7 @@ class syntax_plugin_navigation
             global $lang;
             $title = $lang['diff'];
         }
-        return '<img src="'.DOKU_BASE.'lib/images/diff.png" width="15" height="11" title="'.$title.'" alt="'.$title.'" />';
+        return '<img src="'.DOKU_BASE.'lib/images/diff.png" style="min-width:15px" width="15" title="'.$title.'" alt="'.$title.'" />';
     }
 
     public function versionDiffLink(

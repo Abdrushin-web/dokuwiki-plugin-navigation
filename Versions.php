@@ -51,14 +51,12 @@ class Versions
                     $id = $version[Navigation::id];
                     if ($fillOldPageIds)
                         $oldPageIds[$id] = true;
+                    // clear versions for singles
+                    else if ($count == 1)
+                        Versions::setMetadata($id);
+                    // set versions for multiples
                     else
-                        Versions::setMetadata(
-                            $id,
-                            $count == 1 ?
-                                // clear versions for singles
-                                [] :
-                                // set versions for multiples
-                                $versions);
+                        Versions::setMetadata($id, $versions);
                 }
                 $versions = [];
             }
