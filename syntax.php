@@ -367,10 +367,13 @@ class syntax_plugin_navigation
             $forTitle = $forVersion[Navigation::title] ?? '';
         $previousVersionLevel = 1;
         $versionIndex = 0;
+        $beforeForId = true;
         foreach ($versions as $version)
         {
             $id = $version[Navigation::id];
             $isForId = $id === $forId;
+            if ($isForId)
+                $beforeForId = false;
             $select = $isForId && $diff;
             $title = $version[Navigation::title];
             $contentTitle = Versions::getTitle(
@@ -405,7 +408,7 @@ class syntax_plugin_navigation
             if ($select)
                 $renderer->doc .= '</strong>';
             if ($diff && !$isForId)
-                $renderer->doc .= '&nbsp;'.$this->versionDiffLink($forId, $forTitle, $id, $title, $inPage, $difftype);
+                $renderer->doc .= '&nbsp;'.$this->versionDiffLink($forId, $forTitle, $id, $title, $inPage, $difftype, '', $beforeForId);
             $versionIndex++;
             $nextVersionLevel = $versions[$versionIndex][Navigation::level];
             if ($versionLevel == $nextVersionLevel)
@@ -439,12 +442,14 @@ class syntax_plugin_navigation
         string $id2, string $title2,
         bool $inPage,
         string $difftype = '',
-        string $title = '') : string
+        string $title = '',
+        bool $swap = false
+        ) : string
     {
         $name1 = Versions::getTitle($id1, $title1, $id2, $inPage);
         $name2 = Versions::getTitle($id2, $title2, $id1, $inPage);
         $content = $this->versionDiffLinkContent($title);
-        return html_diff_another_page_navigationlink($difftype, $name1, $id2, $name2, $content, false, $id1);
+        return html_diff_another_page_navigationlink($difftype, $name1, $id2, $name2, $content, $swap, $id1);
     }
 
     public function versionDiffLinkContent(string $title = '') : string
