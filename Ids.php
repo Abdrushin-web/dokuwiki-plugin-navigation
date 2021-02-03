@@ -145,6 +145,15 @@ class Ids
         return $title;
     }
 
+    public static function getNamespaceTitleOrName(string $name, string $pageId, bool $title = true) : string
+    {
+        if (isset($pageId))
+            $title = Ids::getPageTitleOrName($pageId, $name, $title);
+        if (!$title)
+            $title = $name;
+        return $title;
+    }
+
     public static function getNamespaceIdTitle(string $id, bool $inPage) : string
     {
         list(Navigation::name => $name) = Ids::getNamespaceAndName($id);
@@ -154,7 +163,12 @@ class Ids
 
     public static function getPageTitle(string $id, string $name, bool $inPage) : string
     {
-        if (Ids::useHeading($inPage))
+        return Ids::getPageTitleOrName($id, $name, Ids::useHeading($inPage));
+    }
+
+    public static function getPageTitleOrName(string $id, string $name, bool $title = true) : string
+    {
+        if ($title)
             $value = p_get_first_heading($id);
         if (!isset($value))
             $value = $name;

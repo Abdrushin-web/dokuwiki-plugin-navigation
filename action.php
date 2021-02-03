@@ -54,8 +54,6 @@ class action_plugin_navigation
 
     function onPageSave(&$event)
     {
-        $name = $event->data[2];
-        $content = $event->data[0][1];
         $revision = $event->data[3];
         if (
             $event->result === false || // saving failed (null means deleted)
@@ -66,17 +64,9 @@ class action_plugin_navigation
         }
         // saved current
         global $ID;
-        if ($name === Content::getDefinitionPageName($this))
-        {
-            $namespace = $event->data[1];
-            if ($namespace === false)
-                $namespace = '';
-            $content = Content::parseDefinitionPageContentText($namespace, $content);
-            Content::setDefinitionPageContent($this, $namespace, $content);
-            $title = $this->getLang(LangId::definitionPageTitle(Config::content));
-            Ids::setTitle($ID, $title);
-        }
-        else if ($name === Versions::getDefinitionPageName($this))
+        $name = $event->data[2];
+        $content = $event->data[0][1];
+        if ($name === Versions::getDefinitionPageName($this))
         {
             $pagelog = new PageChangeLog($ID);
             $previousRevision = $pagelog->getRevisions(-1, 1)[0];
@@ -86,6 +76,20 @@ class action_plugin_navigation
             Versions::processDefinitionPageContentTexts($oldContent, $content);
             $title = $this->getLang(LangId::definitionPageTitle(Config::versions));
             Ids::setTitle($ID, $title);
+        }
+        else
+        {
+            if ($name === Content::getDefinitionPageName($this))
+            {
+                $namespace = $event->data[1];
+                if ($namespace === false)
+                    $namespace = '';
+                $content = Content::parseDefinitionPageContentText($namespace, $content);
+                Content::setDefinitionPageContent($this, $namespace, $content);
+                $title = $this->getLang(LangId::definitionPageTitle(Config::content));
+                Ids::setTitle($ID, $title);
+            }
+            Content::cacheWholeTree($this);
         }
     }
 
