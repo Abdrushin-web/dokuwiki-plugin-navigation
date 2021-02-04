@@ -7,6 +7,7 @@ class Navigation
     public const title = 'title';
     public const order = 'order';
     public const isNamespace = 'isNamespace';
+    public const isNamespaceOpen = 'isNamespaceOpen';
     public const namespace = 'namespace';
     public const namespaceItem = 'namespaceItem';
     public const namespacePageId = 'namespacePageId';
@@ -18,4 +19,5 @@ class Navigation
     public const isLink = 'isLink';
     public const root = 'root';
     public const diff = 'diff';
+    public const readable = 'readable';
 }

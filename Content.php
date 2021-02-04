@@ -204,6 +204,14 @@ class Content
         $namespaceLevel = 0;
         if ($inPage !== false)
             $addDefinitionPages = false;
+        $menu = $inPage === false;
+        if ($menu)
+        {
+            $currentPageId = Ids::currentPageId();
+            //list(Navigation::namespace => $currentPageNamespaceId) = Ids::getNamespaceAndName($currentPageId);
+            //$currentPageNamespaceId = Ids::getNamespaceId($currentPageNamespaceId);
+            $isNamespaceOpen = true;
+        }
         foreach ($tree as $item)
         {
             $itemNamespace = $item[Navigation::namespace];
@@ -238,16 +246,32 @@ class Content
             if ($skipLevel)
                 continue;
             $isNamespace = $item[Navigation::isNamespace];
-            if ($isNamespace &&
-                !ACL::canReadNamespace($id) ||
-                !$isNamespace &&
-                !ACL::canReadPage($id))
-            {
+            $readable = $isNamespace &&
+                        ACL::canReadNamespace($id) ||
+                        !$isNamespace &&
+                        ACL::canReadPage($id);
+            if (!$readable && $menu)
                 continue;
-            }
-            $skipId = in_array($id, $skippedIds, true);
+            $item[Navigation::readable] = $readable;
+            $idWithoutNamespace = substr($id, strlen($namespace) + 1);
+            $skipId = in_array($id, $skippedIds, true) ||
+                      in_array($idWithoutNamespace, $skippedIds, true);
             if ($skipId)
                 continue;
+            if ($menu)
+            {
+                if ($isNamespace)
+                {
+                    $isNamespaceOpen = strpos($currentPageId, $id) === 0;
+                    $item[Navigation::isNamespaceOpen] = $isNamespaceOpen;
+                    $parentNamespaceId = Ids::getNamespaceId($itemNamespace);
+                    $isParentNamespaceOpen = strpos($currentPageId, $parentNamespaceId) === 0;
+                    if (!$isParentNamespaceOpen)
+                        continue;
+                }
+                else if (!$isNamespaceOpen)
+                    continue;
+            }
             $item[Navigation::level] = $level;
             Content::setTitle($item, $inPage);
             $items[] = $item;

@@ -180,20 +180,22 @@ class syntax_plugin_navigation
             return false;
     }
 
-    function renderTree(Doku_Renderer $renderer, array &$data, bool $inPage)
+    function renderTree(Doku_Renderer_xhtml $renderer, array &$data, bool $inPage)
     {
         // in page
         if ($inPage)
         {
+            $renderer->listu_open(CSS::navigationList);
             $renderer->doc .= html_buildlist(
-            $data,
-            CSS::navigationList,
-            'syntax_plugin_navigation::htmlListItem'
-            );
+                $data,
+                CSS::navigationList,
+                'syntax_plugin_navigation::htmlListItem'
+                );
         }
         // menu
         else
         {
+            $renderer->listu_open(CSS::navigationMenu);
             foreach ($data as &$item)
             {
                 $definitionPageType = $item[Navigation::definitionPageType];
@@ -207,6 +209,7 @@ class syntax_plugin_navigation
                 'syntax_plugin_navigation::htmlMenuLi'
                 );
         }
+        $renderer->listu_close();
     }
 
     function renderLink(Doku_Renderer $renderer, string $id, bool $namespace)
@@ -217,12 +220,9 @@ class syntax_plugin_navigation
 
     public static function htmlMenuLi(array $item) : string
     {
-        global $INFO;
         if ($item[Navigation::isNamespace])
         {
-            $id = Ids::trimLeadingNamespaceSeparator($item[Navigation::id]);
-            $open = $id &&
-                    strpos($INFO[Navigation::id], $id) === 0;
+            $open = $item[Navigation::isNamespaceOpen];
             $class = $open ? 'open' : 'closed';
         }
         else
@@ -322,7 +322,11 @@ class syntax_plugin_navigation
         $id = $item[Navigation::id];
         $class = Css::levelItem.' '.$levelItem;
         if ($id)
+        {
             $uri = wl($id);
+            if (!$item[Navigation::readable])
+                $class .= ' '.Css::disabled;
+        }
         else
             $class .= ' '.Css::disabled;
         return $uri ?
