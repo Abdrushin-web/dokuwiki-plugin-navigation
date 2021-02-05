@@ -5,6 +5,7 @@ class Navigation
     public const id = 'id';
     public const name = 'name';
     public const title = 'title';
+    public const contentTitle = 'contentTitle';
     public const order = 'order';
     public const isNamespace = 'isNamespace';
     public const isNamespaceOpen = 'isNamespaceOpen';

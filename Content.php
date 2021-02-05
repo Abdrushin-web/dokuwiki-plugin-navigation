@@ -281,16 +281,11 @@ class Content
 
     private static function setTitle(array &$item, $inPage)
     {
+        // fill content definition page
         if ($inPage === null)
-        {
-            if ($item[Navigation::title] === $item[Navigation::name])
-                unset($item[Navigation::title]);
-        }
-        else if (!Ids::useHeading($inPage))
-        {
-            $name = $item[Navigation::name];
-            $item[Navigation::title] = $name;
-        }
+            $item[Navigation::title] = $item[Navigation::contentTitle];
+        else if (!Ids::useHeading($inPage) || !$item[Navigation::title])
+            $item[Navigation::title] = $item[Navigation::name];
     }
 
     static function getRootDefinitionPageId(IPlugin $plugin) : string
@@ -341,7 +336,7 @@ class Content
             if ($isNamespace)
                 $namespaceToItem[Ids::getNamespaceName($id)] = &$item;
             Content::applyDefinitionPageContent($plugin, $item, $id, $namespaceToDefinitionPageContent);
-            Content::ensureTitle($item, $id);
+            Content::setOnlyTitle($item, $id);
         }
         usort($items, 'Content::sortTree');
         Content::addDefinitionPageItems($plugin, '', $items);
@@ -432,6 +427,7 @@ class Content
             $contentItem = $content[$id];
             if (isset($contentItem))
             {
+                $contentItem[Navigation::contentTitle] = $contentItem[Navigation::title];
                 $item = array_merge($contentItem, $item);
                 return true;
             }
@@ -439,20 +435,19 @@ class Content
         return false;
     }
 
-    private static function ensureTitle(array &$item, string $id)
+    private static function setOnlyTitle(array &$item, string $id)
     {
         $title = $item[Navigation::title];
         if (!$title)
         {
-            $name = $item[Navigation::name];
             $isNamespace = $item[Navigation::isNamespace];
             if ($isNamespace)
             {
                 $namespacePageId = $item[Navigation::namespacePageId];
-                $title = Ids::getNamespaceTitleOrName($name, $namespacePageId);
+                $title = Ids::getNamespaceTitleOrName('', $namespacePageId);
             }
             else
-                $title = Ids::getPageTitleOrName($id, $name);
+                $title = Ids::getPageTitleOrName($id, '');
             $item[Navigation::title] = $title;
         }
     }
