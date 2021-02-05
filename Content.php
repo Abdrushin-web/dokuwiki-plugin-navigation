@@ -282,7 +282,10 @@ class Content
     private static function setTitle(array &$item, $inPage)
     {
         if ($inPage === null)
-            unset($item[Navigation::title]);
+        {
+            if ($item[Navigation::title] === $item[Navigation::name])
+                unset($item[Navigation::title]);
+        }
         else if (!Ids::useHeading($inPage))
         {
             $name = $item[Navigation::name];
