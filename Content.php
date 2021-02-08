@@ -210,7 +210,7 @@ class Content
             $currentPageId = Ids::currentPageId();
             //list(Navigation::namespace => $currentPageNamespaceId) = Ids::getNamespaceAndName($currentPageId);
             //$currentPageNamespaceId = Ids::getNamespaceId($currentPageNamespaceId);
-            $isNamespaceOpen = true;
+            $closedNamespaces = [];
         }
         foreach ($tree as $item)
         {
@@ -262,14 +262,16 @@ class Content
             {
                 if ($isNamespace)
                 {
-                    $isNamespaceOpen = strpos($currentPageId, $id) === 0;
+                    $isNamespaceOpen = Content::isNamespaceOpen($currentPageId, $id);
+                    if (!$isNamespaceOpen)
+                        $closedNamespaces[] = Ids::getNamespaceName($id);
                     $item[Navigation::isNamespaceOpen] = $isNamespaceOpen;
                     $parentNamespaceId = Ids::getNamespaceId($itemNamespace);
-                    $isParentNamespaceOpen = strpos($currentPageId, $parentNamespaceId) === 0;
+                    $isParentNamespaceOpen = Content::isNamespaceOpen($currentPageId, $parentNamespaceId);
                     if (!$isParentNamespaceOpen)
                         continue;
                 }
-                else if (!$isNamespaceOpen)
+                else if (in_array($itemNamespace, $closedNamespaces, true))
                     continue;
             }
             $item[Navigation::level] = $level;
@@ -277,6 +279,11 @@ class Content
             $items[] = $item;
         }
         return $items;
+    }
+
+    private static function isNamespaceOpen(string $currentPageId, string $id) : bool
+    {
+        return strpos($currentPageId, $id) === 0;
     }
 
     private static function setTitle(array &$item, $inPage)
