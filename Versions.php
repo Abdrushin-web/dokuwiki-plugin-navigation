@@ -69,16 +69,12 @@ class Versions
         }
     }
 
+    const MetadataKey = 'versions';
+    
+
     public static function setMetadata(string $id, array &$versions = [])
     {
-        $metadata =
-        [
-            Metadata::navigation =>
-            [
-                Metadata::versions => $versions
-            ]
-        ];
-        p_set_metadata($id, $metadata);
+        Metadata::set($id, Versions::MetadataKey, $versions);
     }
 
     public static function get(array &$parameters) : array
@@ -107,7 +103,8 @@ class Versions
             $id = Ids::currentPageId();
             $ids[0] = $id;
         }
-        $versions = p_get_metadata($id, Metadata::navigation.' '.Metadata::versions);
+        $versions = Metadata::get($id, Versions::MetadataKey);
+        //print_r($versions);
         // filter versions by more than one id
         if (count($ids) > 1)
         {

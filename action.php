@@ -47,6 +47,7 @@ class action_plugin_navigation
         $content = $wikiText['_text'];
         $content = Content::parseDefinitionPageContentText($namespace, $content);
         Content::setDefinitionPageContent($this, $namespace, $content);
+        Content::cacheWholeTree($this);
         $content = Content::getTree($this, null, $namespace, 1);
         $content = Content::formatDefinitionPageContentText($content);
         $wikiText['_text'] = $content;
@@ -96,7 +97,7 @@ class action_plugin_navigation
     function onUseCache(&$event)
     {
         global $ID;
-        $navigation = p_get_metadata($ID, Metadata::navigation);
+        $navigation = Metadata::get($ID, syntax_plugin_navigation::MetadataKey);
         if ($navigation)
             $event->result = false;
     }
@@ -104,8 +105,11 @@ class action_plugin_navigation
     function addPageMenuLevelItems(&$event)
     {
         global $INFO;
+        global $ACT;
         if ($event->data['view'] !== 'page' || // not page menu
-            !$INFO['exists']) // page does not exist
+            !$INFO['exists'] || // page does not exist
+            $ACT !== 'show' &&
+            $ACT !== 'diff')
         {
             return;
         }

@@ -121,6 +121,8 @@ class syntax_plugin_navigation
         return $data;
     }
 
+    const MetadataKey = 'syntax';
+    
     /**
      * Render xhtml output or metadata
      *
@@ -173,7 +175,7 @@ class syntax_plugin_navigation
         }
         else if ($mode === RenderMode::metadata)
         {
-            $renderer->meta[Metadata::navigation] = true;
+            $renderer->meta[Metadata::getKey(syntax_plugin_navigation::MetadataKey)] = true;
             return true;
         }
         else

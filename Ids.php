@@ -9,7 +9,7 @@ class Ids
     {
         global $INFO;
         global $ID;
-        $id = $INFO[Navigation::id] ?? $ID;
+        $id = $INFO['id'] ?? $ID;
         list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($id);
         if (!$namespace)
             $id = NamespaceSeparator.$id;
@@ -251,21 +251,7 @@ class Ids
                 return;
             $id = $namespacePageId;
         }
-        if (!$title)
-            $title = null;
-        p_set_metadata(
-            $id,
-            [ Metadata::title => $title ]);
-        if (!$title)
-        {
-            // remove title from persistent metadata
-            $metadata = p_read_metadata($id);
-            $persistentMetadata = &$metadata[Metadata::persistent];
-            unset($persistentMetadata[Metadata::title]);
-            p_save_metadata($id, $metadata);
-            // parse title to current metadata
-            p_get_first_heading($id, METADATA_RENDER_UNLIMITED);
-        }
+        Metadata::setTitle($id, $title);
     }
 
     public static function getCommonNamespace(string $namespace1, string $namespace2) : string

@@ -1,7 +1,7 @@
 base   navigation
 author Marek Ištvánek
 email  marek.istvanek@gmail.com
-date   2020-07-06
+date   2021-02-11
 name   Navigation
 desc   Page navigation extensions
 url    https://github.com/Abdrushin-web/navigation

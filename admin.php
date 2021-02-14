@@ -11,7 +11,12 @@ if (!defined('DOKU_INC')) {
     die();
 }
 
-class admin_plugin_navigation extends DokuWiki_Admin_Plugin
+require_once 'Html.php';
+require_once 'IPlugin.php';
+
+class admin_plugin_navigation
+    extends DokuWiki_Admin_Plugin
+    implements IPlugin
 {
 
     /**
@@ -20,6 +25,11 @@ class admin_plugin_navigation extends DokuWiki_Admin_Plugin
     public function getMenuSort()
     {
         return 5;
+    }
+
+    public function getMenuText($language)
+    {
+        return 'Navigation: Process data ...';
     }
 
     /**
@@ -35,7 +45,6 @@ class admin_plugin_navigation extends DokuWiki_Admin_Plugin
      */
     public function handle()
     {
-
     }
 
     /**
@@ -43,7 +52,47 @@ class admin_plugin_navigation extends DokuWiki_Admin_Plugin
      */
     public function html()
     {
-        ptln('<h1>' . $this->getLang('menu') . '</h1>');
+        ptln(Html::Tag('h1', 'Processing'));
+        ptln(Html::Tag('h2', 'Content definitions'));
+        $this->processDefinitions(
+            Content::getDefinitionPageName($this),
+            function(array &$item)
+            {
+                $namespace = $item[Navigation::namespace];
+                $content = Content::parseDefinitionPageContent($this, $namespace);
+                Content::setDefinitionPageContent($this, $namespace, $content);
+            });
+        ptln(Html::Tag('h2', 'Versions definitions'));
+        $this->processDefinitions(
+            Versions::getDefinitionPageName($this),
+            function(array &$item)
+            {
+                $content = rawWiki($item[Navigation::id]);
+                Versions::processDefinitionPageContentTexts('', $content);
+            });
+        ptln(Html::Tag('h2', 'Navigation tree'));
+        Content::cacheWholeTree($this);
+        ptln(Html::Tag('h1', 'Done'));
+    }
+
+    function processDefinitions($pageName, callable $process)
+    {
+        ptln(Html::TagOpen('ul'));
+        $search = function(array &$result, string $basePath, string $path, string $type, int $level, array $parameters)
+            use ($pageName, $process)
+            {
+                if ($type === 'd')
+                    return true;
+                $id = pathID($path);
+                $item = Ids::getNamespaceAndName($id);
+                $item[Navigation::id] = $id;
+                if ($item[Navigation::name] !== $pageName)
+                    return;
+                ptln(Html::Tag('li', $id));
+                call_user_func_array($process, [&$item]);
+            };
+        Content::searchNamespace($this, '', $search, false);
+        ptln(Html::TagClose('ul'));
     }
 }
 

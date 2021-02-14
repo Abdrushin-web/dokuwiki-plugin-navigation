@@ -107,7 +107,7 @@ class Content
         $id = Content::getDefinitionPageId($plugin, $namespace, $exists);
         if ($exists)
         {
-            $content = p_get_metadata($id, Content::MetadataKey);
+            $content = Metadata::get($id, Content::MetadataKey);
             // definition might be uploaded without online editation so lets parse it and save for later usage
             if (!isset($content))
             {
@@ -125,10 +125,7 @@ class Content
         $exists = false;
         $id = Content::getDefinitionPageId($plugin, $namespace, $exists);
         if ($exists)
-        {
-            $data = [ Content::MetadataKey => $content ];
-            $done = p_set_metadata($id, $data);
-        }
+            $done = Metadata::set($id, Content::MetadataKey, $content);
         else
             $done = false;
         return $done;
@@ -253,7 +250,9 @@ class Content
             if (!$readable && $menu)
                 continue;
             $item[Navigation::readable] = $readable;
-            $idWithoutNamespace = substr($id, strlen($namespace) + 1);
+            $idWithoutNamespace = $namespace ?
+                substr($id, strlen($namespace) + 1) :
+                $id;
             $skipId = in_array($id, $skippedIds, true) ||
                       in_array($idWithoutNamespace, $skippedIds, true);
             if ($skipId)
@@ -275,6 +274,7 @@ class Content
                     continue;
             }
             $item[Navigation::level] = $level;
+            $item['level'] = $level; // for list rendering
             Content::setTitle($item, $inPage);
             $items[] = $item;
         }
@@ -283,7 +283,8 @@ class Content
 
     private static function isNamespaceOpen(string $currentPageId, string $id) : bool
     {
-        return strpos($currentPageId, $id) === 0;
+        return Ids::isRootNamespace($id) ||
+               strpos($currentPageId, $id) === 0;
     }
 
     private static function setTitle(array &$item, $inPage)
@@ -307,14 +308,13 @@ class Content
     {
         if (!Content::$tree)
         {
-            Content::$tree = $_SESSION[Content::TreeMetadataKey];
-            if (!Content::$tree)
+            //Content::$tree = $_SESSION[Content::TreeMetadataKey];
+            //if (!Content::$tree)
             {
                 $rootDefinitionPageId = Content::getRootDefinitionPageId($plugin);
-                Content::$tree = p_get_metadata($rootDefinitionPageId, Content::TreeMetadataKey);
+                Content::$tree = Metadata::get($rootDefinitionPageId, Content::TreeMetadataKey);
                 if (!Content::$tree)
                     Content::cacheWholeTree($plugin);
-                $_SESSION[Content::TreeMetadataKey] = Content::$tree;
             }
         }
         return Content::$tree;
@@ -322,10 +322,10 @@ class Content
 
     public static function cacheWholeTree(IPlugin $plugin)
     {
+        //$_SESSION[Content::TreeMetadataKey] =
         Content::$tree = Content::doGetWholeTree($plugin);
         $rootDefinitionPageId = Content::getRootDefinitionPageId($plugin);
-        $data = [ Content::TreeMetadataKey => Content::$tree ];
-        p_set_metadata($rootDefinitionPageId, $data);
+        Metadata::set($rootDefinitionPageId, Content::TreeMetadataKey, Content::$tree);
     }
 
     static function doGetWholeTree(IPlugin $plugin) : array
@@ -346,6 +346,8 @@ class Content
             Content::setOnlyTitle($item, $id);
         }
         usort($items, 'Content::sortTree');
+        foreach ($items as &$item)
+            unset($item[Navigation::namespaceItem]);
         Content::addDefinitionPageItems($plugin, '', $items);
         return $items;
     }
@@ -459,20 +461,21 @@ class Content
         }
     }
 
-    public static function searchNamespace(IPlugin $plugin, string $namespace, string $searchItemMethodName) : array
+    public static function searchNamespace(IPlugin $plugin, string $namespace, callable $searchItemMethod, $skipDefinitionPages = true) : array
     {
         $items = array();
         $folder = utf8_encodeFN(str_replace(NamespaceSeparator, PathSeparator, $namespace));
         global $conf;
         $parameters =
         [
-            Parameter::definitionPageNames =>
+            Parameter::definitionPageNames => $skipDefinitionPages ?
                 [
                     Content::getDefinitionPageName($plugin),
                     Versions::getDefinitionPageName($plugin),
-                ]
+                ] :
+                []
         ];
-        search($items, $conf[Config::datadir], $searchItemMethodName, $parameters, $folder);
+        search($items, $conf[Config::datadir], $searchItemMethod, $parameters, $folder);
         return $items;
     }
 
