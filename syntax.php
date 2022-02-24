@@ -6,6 +6,8 @@
  * @author  Marek Ištvánek <marek.istvanek@gmail.com>
  */
 
+use dokuwiki\Ui\PageDiff;
+
 // must be run within Dokuwiki
 if (!defined('DOKU_INC')) {
     die();
@@ -455,7 +457,7 @@ class syntax_plugin_navigation
         $name1 = Versions::getTitle($id1, $title1, $id2, $inPage);
         $name2 = Versions::getTitle($id2, $title2, $id1, $inPage);
         $content = $this->versionDiffLinkContent($title);
-        return html_diff_another_page_navigationlink($difftype, $name1, $id2, $name2, $content, $swap, $id1);
+        return PageDiff::diffWithAnotherPageViewLinkStatic($id1, $id2, $name1, $name2, $difftype, $swap, $content);
     }
 
     public function versionDiffLinkContent(string $title = '') : string
