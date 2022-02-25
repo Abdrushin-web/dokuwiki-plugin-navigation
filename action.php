@@ -96,7 +96,7 @@ class action_plugin_navigation
 
     function onUseCache(&$event)
     {
-        $navigation = Metadata::get(Ids::currentPageId(), syntax_plugin_navigation::MetadataKey);
+        $navigation = Metadata::get(Ids::currentPageId(false), syntax_plugin_navigation::MetadataKey);
         if ($navigation)
             $event->result = false;
     }

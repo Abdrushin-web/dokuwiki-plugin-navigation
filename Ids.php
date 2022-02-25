@@ -5,11 +5,13 @@ const CurrentNamespaceName = '.';
 
 class Ids
 {
-    public static function currentPageId() : string
+    public static function currentPageId(bool $infoFirstOtherwiseID = true) : string
     {
         global $INFO;
         global $ID;
-        $id = $INFO['id'] ?? $ID;
+        $id = $infoFirstOtherwiseID ?
+            $INFO['id'] ?? $ID :
+            $ID ?? $INFO['id'];
         list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($id);
         if (!$namespace)
             $id = NamespaceSeparator.$id;
