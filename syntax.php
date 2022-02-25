@@ -108,15 +108,13 @@ class syntax_plugin_navigation
                 $data = Versions::getDiffAnchorLinkData($parameters);
                 break;
             case Command::namespaceLink:
-                global $ID;
                 $namespace = $parameters[0];
                 if (!$namespace)
-                    list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($ID);
+                    list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName(Ids::currentPageId());
                 $data[Navigation::id] = Ids::getNamespaceId($namespace);
                 break;
             case Command::link:
-                global $ID;
-                $data[Navigation::id] = $parameters[0] ?? $ID;
+                $data[Navigation::id] = $parameters[0] ?? Ids::currentPageId();
                 break;
         }
         $data[Parameter::command] = $command;
