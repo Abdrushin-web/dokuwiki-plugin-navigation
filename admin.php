@@ -70,8 +70,6 @@ class admin_plugin_navigation
                 $content = rawWiki($item[Navigation::id]);
                 Versions::processDefinitionPageContentTexts('', $content);
             });
-        ptln(Html::Tag('h2', 'Navigation tree'));
-        Content::cacheWholeTree($this);
         ptln(Html::Tag('h1', 'Done'));
     }
 

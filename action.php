@@ -47,7 +47,6 @@ class action_plugin_navigation
         $content = $wikiText['_text'];
         $content = Content::parseDefinitionPageContentText($namespace, $content);
         Content::setDefinitionPageContent($this, $namespace, $content);
-        Content::cacheWholeTree($this);
         $content = Content::getTree($this, null, $namespace, 1);
         $content = Content::formatDefinitionPageContentText($content);
         $wikiText['_text'] = $content;
@@ -78,19 +77,15 @@ class action_plugin_navigation
             $title = $this->getLang(LangId::definitionPageTitle(Config::versions));
             Ids::setTitle($ID, $title);
         }
-        else
+        else if ($name === Content::getDefinitionPageName($this))
         {
-            if ($name === Content::getDefinitionPageName($this))
-            {
-                $namespace = $event->data[1];
-                if ($namespace === false)
-                    $namespace = '';
-                $content = Content::parseDefinitionPageContentText($namespace, $content);
-                Content::setDefinitionPageContent($this, $namespace, $content);
-                $title = $this->getLang(LangId::definitionPageTitle(Config::content));
-                Ids::setTitle($ID, $title);
-            }
-            Content::cacheWholeTree($this);
+            $namespace = $event->data[1];
+            if ($namespace === false)
+                $namespace = '';
+            $content = Content::parseDefinitionPageContentText($namespace, $content);
+            Content::setDefinitionPageContent($this, $namespace, $content);
+            $title = $this->getLang(LangId::definitionPageTitle(Config::content));
+            Ids::setTitle($ID, $title);
         }
     }
 

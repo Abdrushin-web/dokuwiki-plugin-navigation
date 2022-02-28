@@ -10,6 +10,8 @@ class Parameter
     public const namespace = 'namespace';
     // max tree levels
     public const levels = 'levels';
+    // current menu page identifier
+    public const currentPageId = 'currentPageId';
     // namespace/page identifiers to skip
     public const skippedIds = 'skippedIds';
     // definition page names

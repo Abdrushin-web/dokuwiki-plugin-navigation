@@ -3,18 +3,18 @@
 // short names are used in stored whole tree in :content metadata to save space
 class Navigation
 {
-    public const id = 'i';
-    public const name = 'n';
-    public const title = 't';
-    public const contentTitle = 'ct';
-    public const order = 'o';
-    public const isNamespace = 'in';
+    public const id = 'id';
+    public const name = 'name';
+    public const title = 'title';
+    public const contentTitle = 'contentTitle';
+    public const order = 'order';
+    public const isNamespace = 'isNamespace';
     public const isNamespaceOpen = 'isNamespaceOpen';
-    public const namespace = 'ns';
+    public const namespace = 'namespace';
     public const namespaceItem = 'namespaceItem';
-    public const namespacePageId = 'npi';
-    public const definitionPageType = 'dpt';
-    public const level = 'l';
+    public const namespacePageId = 'namespacePageId';
+    public const definitionPageType = 'definitionPageType';
+    public const level = 'level';
     public const levelItem = 'levelItem';
     public const levelItemName = 'levelItemName';
     public const versions = 'versions';
