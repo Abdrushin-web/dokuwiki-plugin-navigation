@@ -11,7 +11,6 @@ class Navigation
     public const isNamespace = 'isNamespace';
     public const isNamespaceOpen = 'isNamespaceOpen';
     public const namespace = 'namespace';
-    public const namespaceItem = 'namespaceItem';
     public const namespacePageId = 'namespacePageId';
     public const definitionPageType = 'definitionPageType';
     public const level = 'level';

@@ -7,6 +7,7 @@ class Metadata
     const title = 'title';
     const date = 'date';
     const modified = 'modified';
+    const dateModified = Metadata::date.' '.Metadata::modified;
 
     public static function getKey(string $name)
     {
