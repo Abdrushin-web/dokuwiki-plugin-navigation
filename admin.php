@@ -89,7 +89,7 @@ class admin_plugin_navigation
                 ptln(Html::Tag('li', $id));
                 call_user_func_array($process, [&$item]);
             };
-        Content::searchNamespace($this, '', $search, false);
+        Content::searchNamespace($this, '', $search);
         ptln(Html::TagClose('ul'));
     }
 }

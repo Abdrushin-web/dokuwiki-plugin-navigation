@@ -321,7 +321,7 @@ class Content
             Content::setOnlyTitle($item, $id);
         }
         usort($items, 'Content::sortNamespace');
-        Content::addDefinitionPageItems($plugin, '', $items);
+        Content::addDefinitionPageItems($plugin, $namespace, $items);
         return $items;
     }
 
