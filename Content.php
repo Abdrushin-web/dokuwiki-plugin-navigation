@@ -247,7 +247,7 @@ class Content
                 ACL::canReadNamespace($id) ||
                 !$isNamespace &&
                 ACL::canReadPage($id);
-            if (!$readable && $menu)
+            if (!$readable)
                 continue;
             $item[Navigation::readable] = $readable;
             $idWithoutNamespace = $namespace ?
