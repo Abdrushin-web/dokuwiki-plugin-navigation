@@ -470,7 +470,7 @@ class Content
             Navigation::name => $pageName,
             Navigation::definitionPageType => $pageType
         ];
-        array_insert($items, $index, [ $item ]);
+        array_insert_array($items, $index, [ $item ]);
     }
 
     public static function getLastTreeChangeFromParameters(IPlugin $plugin, array $parameters) : array

@@ -53,7 +53,7 @@ class LevelItem
     public static function getDefaultPageMenuList() : array
     {
         $levelItems = LevelItem::getDefaultList(LevelItemsMode::symbols);
-        array_insert($levelItems, 0, [ LevelItem::bottom ]);
+        array_insert_array($levelItems, 0, [ LevelItem::bottom ]);
         return $levelItems;
     }
 }
