@@ -105,17 +105,20 @@ class Versions
         }
         $versions = Metadata::get($id, Versions::MetadataKey);
         //print_r($versions);
-        // filter versions by more than one id
-        if (count($ids) > 1)
-        {
-            $versions =  array_filter(
-                $versions,
-                function ($version) use ($ids)
-                {
-                    return array_search($version[Navigation::id], $ids) !== false;
-                });
-            $versions = array_values($versions);
-        }
+        $versions =  array_filter(
+            $versions,
+            function ($version) use ($ids)
+            {
+                $id = $version[Navigation::id];
+                return
+                    ACL::canReadPage($id) &&
+                    (
+                        count($ids) === 1 ||
+                        // filter versions by more than one id
+                        array_search($id, $ids) !== false
+                    );
+            });
+        $versions = array_values($versions); // reindex
         return
         [
             Navigation::id => $id,
