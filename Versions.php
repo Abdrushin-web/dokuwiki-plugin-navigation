@@ -103,7 +103,7 @@ class Versions
             $id = Ids::currentPageId();
             $ids[0] = $id;
         }
-        $versions = Metadata::get($id, Versions::MetadataKey);
+        $versions = Metadata::get($id, Versions::MetadataKey) ?? [];
         //print_r($versions);
         $versions =  array_filter(
             $versions,
