@@ -24,7 +24,7 @@ class action_plugin_navigation
      */
     function register(Doku_Event_Handler $controller)
     {
-        $controller->register_hook('HTML_EDITFORM_OUTPUT', 'BEFORE', $this, 'onPageEdit');
+        $controller->register_hook('FORM_EDIT_OUTPUT', 'BEFORE', $this, 'onPageEdit');
         $controller->register_hook('IO_WIKIPAGE_WRITE', 'AFTER', $this, 'onPageSave');
         $controller->register_hook('PARSER_CACHE_USE', 'AFTER', $this, 'onUseCache');
         global $conf;
@@ -35,6 +35,7 @@ class action_plugin_navigation
     function onPageEdit(&$event)
     {
         global $ACT;
+	echo 'ABC';
         if ($ACT !== 'edit')
             return;
         global $ID;
@@ -42,14 +43,17 @@ class action_plugin_navigation
         if ($name !== Content::getDefinitionPageName($this))
             return;
         // Content page
-        $form = $event->data;
-        $wikiText = &$form->_content[0];
-        $content = $wikiText['_text'];
+	$form = $event->data;
+	$textAreaPosition = $form->findPositionByAttribute('name', 'wikitext');
+	if ($textAreaPosition === false)
+	   return;
+	$textArea = $form->getElementAt($textAreaPosition);
+        $content = $textArea->val();
         $content = Content::parseDefinitionPageContentText($namespace, $content);
         Content::setDefinitionPageContent($this, $namespace, $content);
         $content = Content::getTree($this, null, $namespace, 1);
         $content = Content::formatDefinitionPageContentText($content);
-        $wikiText['_text'] = $content;
+        $textArea->val($content);
     }
 
     function onPageSave(&$event)
