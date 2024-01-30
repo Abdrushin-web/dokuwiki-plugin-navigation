@@ -123,6 +123,8 @@ class syntax_plugin_navigation
 
     const MetadataKey = 'syntax';
     
+    private Doku_Renderer_xhtml $renderer;
+
     /**
      * Render xhtml output or metadata
      *
@@ -184,20 +186,21 @@ class syntax_plugin_navigation
 
     function renderTree(Doku_Renderer_xhtml $renderer, array &$data, bool $inPage)
     {
+        $this->renderer = $renderer;
         // in page
         if ($inPage)
         {
-            $renderer->listu_open(CSS::navigationList);
+            //$renderer->listu_open(CSS::navigationList);
             $renderer->doc .= html_buildlist(
                 $data,
                 CSS::navigationList,
-                'syntax_plugin_navigation::htmlListItem'
+                [$this, 'htmlListItem']
                 );
         }
         // menu
         else
         {
-            $renderer->listu_open(CSS::navigationMenu);
+            //$renderer->listu_open(CSS::navigationMenu);
             foreach ($data as &$item)
             {
                 $definitionPageType = $item[Navigation::definitionPageType];
@@ -207,11 +210,11 @@ class syntax_plugin_navigation
             $renderer->doc .= html_buildlist(
                 $data,
                 CSS::navigationMenu,
-                'syntax_plugin_navigation::htmlMenuItem',
+                [$this, 'htmlMenuItem'],
                 'syntax_plugin_navigation::htmlMenuLi'
                 );
         }
-        $renderer->listu_close();
+        //$renderer->listu_close();
     }
 
     function renderLink(Doku_Renderer $renderer, string $id, bool $namespace)
@@ -235,7 +238,7 @@ class syntax_plugin_navigation
         return '<li class="'.$class.'">';
     }
 
-    public static function htmlMenuItem(array $item) : string
+    public function htmlMenuItem(array $item) : string
     {
         $levelItem = $item[Navigation::levelItem];
         if ($levelItem)
@@ -250,21 +253,21 @@ class syntax_plugin_navigation
                 $result = $levelItemName.': ';
             }
         }
-        $result .= syntax_plugin_navigation::htmlMenuListItem($item, true);
+        $result .= $this->htmlMenuListItem($item, true);
         return $result;
     }
 
-    public static function htmlListItem(array $item) : string
+    public function htmlListItem(array $item) : string
     {
-        return syntax_plugin_navigation::htmlMenuListItem($item, false);
+        return $this->htmlMenuListItem($item, false);
     }
 
-    public static function htmlMenuListItem(array &$item, bool $showCurrent) : string
+    public function htmlMenuListItem(array &$item, bool $showCurrent) : string
     {
         // global $ID;
         $id = $item[Navigation::id];
         $title = $item[Navigation::title];
-        $result = html_wikilink($id, $title);
+        $result = $this->renderer->internallink($id, $title, null, true);
         // if (
         //     $showCurrent &&
         //     $ID === $id
@@ -280,7 +283,10 @@ class syntax_plugin_navigation
         if ($namespace)
             $id = getNS($id);
         $link = wl($id, '', true);
-        if ($namespace)
+        // strip double / for root namespace
+        if (Ids::isRootNamespace($id))
+            $link = rtrim($link, '/');
+        else if ($namespace)
             $link .= '/';
         return $link;
     }

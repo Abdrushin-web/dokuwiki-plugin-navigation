@@ -20,6 +20,7 @@ class Parameter
     public const title = 'title';
     public const noDiff = 'NoDiff';
     public const noRoot = 'NoRoot';
+    public const noCurrent = 'NoCurrent';
     // version diff
     public const page1 = 'page1';
     public const page2 = 'page2';

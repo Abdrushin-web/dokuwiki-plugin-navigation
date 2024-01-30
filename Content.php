@@ -244,7 +244,12 @@ class Content
             $isNamespace = $item[Navigation::isNamespace];
             $readable =
                 $isNamespace &&
-                ACL::canReadNamespace($id) ||
+                (
+                    // whole namespace
+                    ACL::canReadNamespace($id) ||
+                    // just namespace page
+                    ACL::canReadPage(Ids::getNamespacePageId($id))
+                ) ||
                 !$isNamespace &&
                 ACL::canReadPage($id);
             if (!$readable)
@@ -444,11 +449,15 @@ class Content
 
     private static function addDefinitionPageItems(IPlugin $plugin, string $namespace, array &$items)
     {
-        $pageTypeToName =
-        [
-            Config::content => Content::getDefinitionPageName($plugin),
-            Config::versions => Versions::getDefinitionPageName($plugin)
-        ];
+        $pageTypeToName = $namespace ?
+            [
+                Config::content => Content::getDefinitionPageName($plugin)
+            ] :
+            // Versions only at root namespace to simplify handling and prevent errors of redefining versions at lower levels
+            [
+                Config::content => Content::getDefinitionPageName($plugin),
+                Config::versions => Versions::getDefinitionPageName($plugin)
+            ];
         $index = 0;
         foreach ($pageTypeToName as $pageType => $pageName)
             Content::insertDefinitionPageItem($items, $namespace, $pageType, $pageName, $index++);
@@ -476,18 +485,47 @@ class Content
     public static function getLastTreeChangeFromParameters(IPlugin $plugin, array $parameters) : array
     {
         global $ID;
-        $modeIndex = count($parameters) > 1 ? 1 : 0;
-        $id = $modeIndex ?
-            Ids::getNamespaceId($parameters[0]) :
-            $ID;
-        $mode = $parameters[$modeIndex] ?? DateTimeMode::DateTime;
-        $data = Content::getLastTreeChange($plugin, $id);
+        $ids = [];
+        foreach ($parameters as $parameter)
+        {
+            if (DateTimeMode::isMode($parameter))
+                $mode =  $parameter;
+            else
+            {
+                $id = $parameter === CurrentNamespaceName ?
+                    $ID :
+                    Ids::parseIdWithOptionalTitleFromOptionalLink($parameter)[Navigation::id];
+                $ids[] = Ids::getNamespaceId($id);
+            }
+        }
+        if (!count($ids))
+            $ids[] = Ids::getNamespaceId($ID);
+        if (!$mode)
+            $mode = DateTimeMode::Date;
+        $data = null;
+        foreach ($ids as $id)
+        {
+            $idData = Content::getLastTreeChange($plugin, $id);
+            if (!$data)
+                $data = $idData;
+            else
+            {
+                $idDate = $idData[Metadata::date];
+                if ($idDate > $data[Metadata::date])
+                    $data[Metadata::date] = $idDate;
+            }
+        }
         $data[Parameter::mode] = $mode;
         return $data;
     }
 
     public static function getLastTreeChange(IPlugin $plugin, string $id) : array
     {
+        // specific media file
+        $mediaFile = mediaFN($id);
+        if (file_exists($mediaFile))
+            return [ Metadata::date => filemtime($mediaFile) ];
+        // page namespace
         list(Navigation::namespace => $namespace) = Ids::getNamespaceAndName($id);
         $items = Content::searchNamespace($plugin, $namespace, 'Content::searchLastChange');
         return $items[0] ?? [ Metadata::date => time() ];
@@ -495,10 +533,11 @@ class Content
 
     public static function searchLastChange(array &$items, string $basePath, string $path, string $type, int $level, array $parameters) : bool
     {
+        // folder
         if ($type == 'd')
             return true;
-        $id = pathID($path);
         // page
+        $id = pathID($path);
         $item[Metadata::date] = $time = p_get_metadata($id, Metadata::dateModified);
         if (!$time)
             return false;

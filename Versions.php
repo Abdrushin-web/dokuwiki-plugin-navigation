@@ -81,6 +81,7 @@ class Versions
     {
         $root = true;
         $diff = true;
+        $skipCurrent = false;
         foreach ($parameters as $parameter)
         {
             switch ($parameter)
@@ -91,6 +92,9 @@ class Versions
                 case Parameter::noDiff:
                     $diff = false;
                     break;
+                case Parameter::noCurrent:
+                    $skipCurrent = true;
+                    break;
                 default:
                     $ids[] = Parameter::getIdFromOptionalLink($parameter);
                     break;
@@ -98,16 +102,17 @@ class Versions
         }
         // for id
         $id = $ids[0];
+        $current = Ids::currentPageId(); 
         if (!$id)
         {
-            $id = Ids::currentPageId();
+            $id = $current;
             $ids[0] = $id;
         }
         $versions = Metadata::get($id, Versions::MetadataKey) ?? [];
         //print_r($versions);
         $versions =  array_filter(
             $versions,
-            function ($version) use ($ids)
+            function ($version) use ($ids, $current, $skipCurrent)
             {
                 $id = $version[Navigation::id];
                 return
@@ -116,7 +121,8 @@ class Versions
                         count($ids) === 1 ||
                         // filter versions by more than one id
                         array_search($id, $ids) !== false
-                    );
+                    ) &&
+                    (!$skipCurrent || $id !== $current);
             });
         $versions = array_values($versions); // reindex
         return
