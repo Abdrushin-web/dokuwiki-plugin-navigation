@@ -122,7 +122,7 @@ class syntax_plugin_navigation
     }
 
     const MetadataKey = 'syntax';
-    
+
     private Doku_Renderer_xhtml $renderer;
 
     /**
@@ -423,8 +423,11 @@ class syntax_plugin_navigation
                 $renderer->doc .= '&nbsp;'.$this->versionDiffLink($forId, $forTitle, $id, $title, $inPage, $difftype, '', $beforeForId);
             $versionIndex++;
             $nextVersionLevel = $versions[$versionIndex][Navigation::level];
-            if ($versionLevel == $nextVersionLevel)
+            if ($versionLevel == $nextVersionLevel ||
+                !$nextVersionLevel)
+            {
                 $renderer->listitem_close();
+            }
             $previousVersionLevel = $versionLevel;
         }
         for ($i = 1; $i < $previousVersionLevel; $i++)
