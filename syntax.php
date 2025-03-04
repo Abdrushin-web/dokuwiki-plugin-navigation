@@ -377,7 +377,7 @@ class syntax_plugin_navigation
         }
         if ($diff)
             $forTitle = $forVersion[Navigation::title] ?? '';
-        $previousVersionLevel = 1;
+        $firstVersionLevel = $previousVersionLevel = $versions[0][Navigation::level] ?? 1;
         $versionIndex = 0;
         $beforeForId = true;
         foreach ($versions as $version)
@@ -430,9 +430,9 @@ class syntax_plugin_navigation
             }
             $previousVersionLevel = $versionLevel;
         }
-        for ($i = 1; $i < $previousVersionLevel; $i++)
+        for ($i = $firstVersionLevel; $i < $previousVersionLevel; $i++)
             $renderer->listu_close();
-        if ($previousVersionLevel > 1)
+        if ($previousVersionLevel > $firstVersionLevel)
             $renderer->listitem_close();
         if ($root)
         {
